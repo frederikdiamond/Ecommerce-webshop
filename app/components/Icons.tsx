@@ -1,7 +1,7 @@
 export const SearchIcon: React.FC<React.SVGProps<SVGSVGElement>> = () => {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-      <g strokeWidth="2">
+      <g>
         <circle cx="11" cy="11" r="7" />
         <path strokeLinecap="round" d="m20 20l-3-3" />
       </g>

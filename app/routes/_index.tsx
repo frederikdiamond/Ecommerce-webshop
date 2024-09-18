@@ -1,5 +1,4 @@
 import type { MetaFunction } from "@remix-run/node";
-import Navbar from "~/components/Navbar";
 
 export const meta: MetaFunction = () => {
   return [
@@ -10,10 +9,8 @@ export const meta: MetaFunction = () => {
 
 export default function Index() {
   return (
-    <main>
-      <Navbar />
-
-      {/* Make carousel component */}
+    <main className="-scroll-mt-16">
+      {/* Replace with carousel component */}
       <h2 className="text-2xl font-medium">Best Selling</h2>
       <h2>Newest Products</h2>
 
