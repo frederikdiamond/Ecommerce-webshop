@@ -14,7 +14,7 @@ export default function Index() {
       <Navbar />
 
       {/* Make carousel component */}
-      <h2>Best Selling</h2>
+      <h2 className="text-2xl font-medium">Best Selling</h2>
       <h2>Newest Products</h2>
 
       {/* <div className="flex h-screen items-center justify-center">
