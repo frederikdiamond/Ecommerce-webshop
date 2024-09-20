@@ -42,11 +42,8 @@ export default function ProductMenu({
     const handleMouseLeave = () => {
       setIsSidemenuOpen(false);
       setHoveredProductCategory(null);
+      setLastActiveCategory(null);
     };
-
-    if (hoveredProductCategory) {
-      setLastActiveCategory(hoveredProductCategory);
-    }
 
     const productSidemenu = productSideMenuRef.current;
     if (productSidemenu) {
@@ -71,7 +68,7 @@ export default function ProductMenu({
         <div className="fixed z-[99] h-full w-full bg-black/25 backdrop-blur-xl">
           <div className="fixed bottom-0 left-0 top-0 flex">
             <div
-              ref={productCategoryMenuRef}
+              //   ref={productCategoryMenuRef}
               className="z-[100] w-64 bg-white pl-10 pt-10"
             >
               <button
@@ -100,50 +97,52 @@ export default function ProductMenu({
                   All Products
                 </Link>
                 {productCategories.map((category) => (
-                  <Link
-                    key={category.id}
-                    to={category.link}
-                    className={`flex items-center justify-between py-2.5 pr-3 text-xl transition-colors duration-200 ${
-                      hoveredProductCategory === category.id ||
-                      lastActiveCategory === category.id
-                        ? "text-black"
-                        : "text-black/50 hover:text-black"
-                    }`}
-                    onMouseEnter={() => {
-                      setIsSidemenuOpen(true);
-                      setHoveredProductCategory(category.id);
-                    }}
-                    onMouseLeave={() => {
-                      setIsSidemenuOpen(false);
-                      setHoveredProductCategory(null);
-                    }}
-                    // onClick={() => handleProductCategoryClick(category.id)}
-                  >
-                    {category.name}
-                    <svg
-                      className={`relative size-8 rotate-180 transition-all duration-200 ${
-                        hoveredProductCategory === category.id ||
-                        lastActiveCategory === category.id
-                          ? "left-0 opacity-100"
-                          : "-left-2 opacity-0"
+                  <div key={category.id} ref={productCategoryMenuRef}>
+                    <Link
+                      to={category.link}
+                      className={`flex items-center justify-between py-2.5 pr-3 text-xl transition-colors duration-200 ${
+                        lastActiveCategory === category.id ||
+                        hoveredProductCategory === category.id
+                          ? "text-black"
+                          : "text-black/50 hover:text-black"
                       }`}
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
+                      onMouseEnter={() => {
+                        setIsSidemenuOpen(true);
+                        setHoveredProductCategory(category.id);
+                        setLastActiveCategory(category.id);
+                      }}
+                      onMouseLeave={() => {
+                        setIsSidemenuOpen(false);
+                        setHoveredProductCategory(null);
+                      }}
+                      // onClick={() => handleProductCategoryClick(category.id)}
                     >
-                      <g
-                        fill="none"
-                        stroke="currentColor"
-                        strokeLinecap="round"
-                        strokeWidth="1.5"
+                      {category.name}
+                      <svg
+                        className={`relative size-8 rotate-180 transition-all duration-200 ${
+                          hoveredProductCategory === category.id ||
+                          lastActiveCategory === category.id
+                            ? "left-0 opacity-100"
+                            : "-left-2 opacity-0"
+                        }`}
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
                       >
-                        <path strokeMiterlimit="10" d="M4 12h16" />
-                        <path
-                          strokeLinejoin="round"
-                          d="M11.033 4.34L4.46 10.911a1.53 1.53 0 0 0 0 2.176l6.573 6.573"
-                        />
-                      </g>
-                    </svg>
-                  </Link>
+                        <g
+                          fill="none"
+                          stroke="currentColor"
+                          strokeLinecap="round"
+                          strokeWidth="1.5"
+                        >
+                          <path strokeMiterlimit="10" d="M4 12h16" />
+                          <path
+                            strokeLinejoin="round"
+                            d="M11.033 4.34L4.46 10.911a1.53 1.53 0 0 0 0 2.176l6.573 6.573"
+                          />
+                        </g>
+                      </svg>
+                    </Link>
+                  </div>
                 ))}
               </div>
             </div>

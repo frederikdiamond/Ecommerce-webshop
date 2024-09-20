@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { Link } from "@remix-run/react";
 import IconButton from "./IconButton";
-import { PersonIcon, SearchIcon, ShoppingCartIcon } from "./Icons";
+import {
+  HomeIcon,
+  MenuIcon,
+  PersonIcon,
+  SearchIcon,
+  ShoppingCartIcon,
+  SupportIcon,
+} from "./Icons";
 import NavLink from "./NavLink";
 import ProductMenu from "./ProductMenu";
 
@@ -14,14 +21,27 @@ export default function Navbar() {
           <Link to={"/"}>TechVibe</Link>
           {/* Nav links and product menu toggle */}
           <div className="flex gap-2">
-            <NavLink href="/">Home</NavLink>
+            <NavLink href="/">
+              <div className="size-6">
+                <HomeIcon />
+              </div>
+              Home
+            </NavLink>
             <button
               onClick={() => setIsProductMenuOpen(true)}
-              className="flex gap-2 rounded-md px-4 py-2 text-black/50 transition duration-200 ease-in-out hover:bg-black/10 hover:text-black active:bg-black/20"
+              className="flex items-center gap-1.5 rounded-md px-4 py-2 text-black/50 transition duration-200 ease-in-out hover:bg-black/10 hover:text-black active:bg-black/20"
             >
+              <div className="size-6">
+                <MenuIcon />
+              </div>
               Products
             </button>
-            <NavLink href="/support">Support</NavLink>
+            <NavLink href="/support">
+              <div className="size-6">
+                <SupportIcon />
+              </div>
+              Support
+            </NavLink>
           </div>
           {/* Search, My Cart, and My Account */}
           <div className="flex items-center gap-3">
