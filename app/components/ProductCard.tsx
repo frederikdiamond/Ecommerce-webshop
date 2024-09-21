@@ -1,19 +1,21 @@
 export default function ProductCard({
-  name,
-  description,
-  price,
+  productName,
+  productDescription,
+  productPrice,
 }: {
-  name: string;
-  description: string;
-  price: number;
+  productName: string;
+  productDescription: string;
+  productPrice: number;
 }) {
   return (
     <div>
       <img src="" alt="" />
       <div>
-        <h3 className="text-xl font-bold">{name}</h3>
-        <p>{description}</p>
-        <p className="font-medium">{price}</p>
+        <h3 className="text-xl font-bold hover:text-blue-500 hover:underline">
+          {productName}
+        </h3>
+        <p>{productDescription}</p>
+        <p className="font-medium">{productPrice}</p>
       </div>
     </div>
   );

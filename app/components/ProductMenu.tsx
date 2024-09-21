@@ -65,7 +65,7 @@ export default function ProductMenu({
     <>
       {/* Product menu */}
       {isProductMenuOpen && (
-        <div className="fixed z-[99] h-full w-full bg-black/25 backdrop-blur-xl">
+        <div className="fixed bottom-0 left-0 right-0 top-0 z-[99] h-full w-full bg-black/25 backdrop-blur-xl">
           <div className="fixed bottom-0 left-0 top-0 flex">
             <div
               //   ref={productCategoryMenuRef}

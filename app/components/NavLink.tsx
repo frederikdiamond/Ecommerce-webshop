@@ -12,7 +12,7 @@ export default function NavLink({
   return (
     <Link
       to={href}
-      className={`flex items-center gap-1.5 rounded-md px-4 py-2 transition duration-200 ease-in-out hover:bg-black/10 active:bg-black/20 ${location.pathname === href ? "font-semibold text-black" : "font-normal text-black/50 hover:text-black"}`}
+      className={`flex items-center gap-1.5 rounded-md px-4 py-2 text-center transition duration-200 ease-in-out hover:bg-black/10 active:bg-black/20 ${location.pathname === href ? "font-semibold text-black" : "font-normal text-black/50 hover:text-black"}`}
     >
       {children}
     </Link>
