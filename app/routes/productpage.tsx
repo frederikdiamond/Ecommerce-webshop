@@ -1,6 +1,7 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { useCallback, useState } from "react";
+import CustomerReviewSection from "~/components/CustomerReviewSection";
 import { FullscreenImage } from "~/components/FullscreenImage";
 import { ArrowIcom } from "~/components/Icons";
 
@@ -130,9 +131,11 @@ export default function ProductPage({
               {productPage.productDescription}
             </p>
             {/* If product is configurable, show button to configure. */}
-            <p className="mt-2.5 text-sm opacity-75">
-              {productPage.productSpecifications}
-            </p>
+            <ul className="mt-4 list-disc pl-5 text-sm opacity-75">
+              {productPage.productSpecifications.map((spec, index) => (
+                <li key={index}>{spec}</li>
+              ))}
+            </ul>
             <button className="text-sm font-medium text-blue-500 hover:text-blue-700 hover:underline">
               Edit Configuration
             </button>
@@ -150,10 +153,8 @@ export default function ProductPage({
           </div>
         </div>
       </div>
-      <div>
-        <div>
-          <h2 className="text-lg font-medium">Reviews by Customers</h2>
-        </div>
+      <div className="w-[950px]">
+        <CustomerReviewSection />
         <div>
           <h2 className="text-lg font-medium">Product Recommendations</h2>
         </div>
