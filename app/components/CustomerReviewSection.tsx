@@ -85,7 +85,7 @@ export default function CustomerReviewSection() {
         {reviews.length > 4 && (
           <button
             onClick={toggleReviews}
-            className="rounded-md px-3 py-1.5 text-center font-semibold text-blue-500 transition duration-200 ease-in-out hover:bg-blue-500 hover:text-white"
+            className="rounded-md px-3 py-1.5 text-center font-semibold text-blue-500 transition duration-200 ease-in-out hover:bg-blue-500 hover:text-white active:bg-blue-600"
           >
             {visibleReviews < reviews.length ? "Show More" : "Show Less"}
           </button>

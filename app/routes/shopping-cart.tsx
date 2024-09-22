@@ -27,7 +27,7 @@ export default function ShoppingCart({
         <div>
           <div className="flex font-semibold opacity-75">
             <p>Product</p>
-            <p>Quatity</p>
+            <p>Quantity</p>
             <p>Price</p>
           </div>
           <div className="flex">

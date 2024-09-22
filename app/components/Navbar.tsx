@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "@remix-run/react";
 import IconButton from "./IconButton";
 import {
@@ -11,14 +11,47 @@ import {
 } from "./Icons";
 import NavLink from "./NavLink";
 import ProductMenu from "./ProductMenu";
+import AccountMenu from "./AccountMenu";
 
 export default function Navbar() {
   const [isProductMenuOpen, setIsProductMenuOpen] = useState(false);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
+
+  const toggleAccountMenu = () => {
+    setShowAccountMenu(!showAccountMenu);
+  };
+
+  const closeAccountMenu = () => {
+    setShowAccountMenu(false);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        accountMenuRef.current &&
+        !accountMenuRef.current.contains(event.target as Node)
+      ) {
+        closeAccountMenu();
+      }
+    };
+
+    if (showAccountMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showAccountMenu]);
+
   return (
     <>
       <nav className="fixed left-0 right-0 top-0 z-[95] flex w-full bg-white">
         <div className="mx-10 my-1.5 flex w-full items-center justify-between">
-          <Link to={"/"}>TechVibe</Link>
+          <Link to={"/"} className="text-lg leading-relaxed">
+            Tech<span className="font-semibold">Vibe</span>
+          </Link>
           {/* Nav links and product menu toggle */}
           <div className="flex gap-2">
             <NavLink href="/">
@@ -48,7 +81,7 @@ export default function Navbar() {
             <IconButton
               href="#"
               icon={
-                <div className="fill-none stroke-black/75 stroke-[2.5px] group-hover:stroke-black">
+                <div className="fill-none stroke-black/50 stroke-[2.5px] group-hover:stroke-black">
                   <SearchIcon />
                 </div>
               }
@@ -57,28 +90,34 @@ export default function Navbar() {
             <IconButton
               href="shopping-cart"
               icon={
-                <div className="fill-black/75 group-hover:fill-black">
+                <div className="fill-black/50 group-hover:fill-black">
                   <ShoppingCartIcon />
                 </div>
               }
             />
 
-            <button className="flex items-center gap-3.5 rounded-xl p-2.5 opacity-75 transition-all duration-200 ease-in-out hover:bg-black/10 hover:opacity-100 active:bg-black/20">
-              <div className="size-5">
-                <PersonIcon />
-              </div>
-              <span>My Account</span>
-              <svg
-                className="size-3.5"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 616 614"
+            <div ref={accountMenuRef}>
+              <button
+                onClick={toggleAccountMenu}
+                className="flex items-center gap-3.5 rounded-xl p-2.5 opacity-50 transition-all duration-200 ease-in-out hover:bg-black/10 hover:opacity-100 active:bg-black/20"
               >
-                <path
-                  fill="currentColor"
-                  d="m602.442 200l-253 317c-24 29-61 29-84 0l-253-317c-24-30-12-53 25-53h540c38 0 49 23 25 53z"
-                />
-              </svg>
-            </button>
+                <div className="size-5">
+                  <PersonIcon />
+                </div>
+                <span>My Account</span>
+                <svg
+                  className={`${showAccountMenu ? "rotate-180" : "rotate-0"} size-3.5 transition-all duration-300 ease-in-out`}
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 616 614"
+                >
+                  <path
+                    fill="currentColor"
+                    d="m602.442 200l-253 317c-24 29-61 29-84 0l-253-317c-24-30-12-53 25-53h540c38 0 49 23 25 53z"
+                  />
+                </svg>
+              </button>
+              {showAccountMenu && <AccountMenu onClose={closeAccountMenu} />}
+            </div>
           </div>
         </div>
       </nav>

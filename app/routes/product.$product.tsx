@@ -30,6 +30,13 @@ const productPage = {
   basePrice: 2399,
   configurations: [
     {
+      name: "Chip",
+      options: [
+        { label: "M3 Pro", price: 0 },
+        { label: "M3 Max", price: 400 },
+      ],
+    },
+    {
       name: "Memory",
       options: [
         { label: "16GB", price: 0 },
@@ -102,10 +109,6 @@ export default function ProductPage({
   const handleCloseFullscreen = useCallback(() => {
     setIsFullscreen(false);
   }, []);
-
-  // const toggleConfigurationView = () => {
-  //   setShowEditConfiguration((prev) => !prev);
-  // };
 
   const toggleConfigurationView = () => {
     setShowEditConfiguration(!showEditConfiguration);
@@ -217,11 +220,11 @@ export default function ProductPage({
                           onClick={() =>
                             handleConfigurationChange(category.name, option)
                           }
-                          className={`rounded-md px-3 py-1 text-sm ${
+                          className={`rounded-md px-3 py-1 text-sm transition duration-200 ${
                             selectedConfigurations[category.name]?.label ===
                             option.label
-                              ? "bg-blue-500 text-white"
-                              : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                              ? "bg-blue-500 text-white active:bg-blue-600"
+                              : "bg-gray-200 text-gray-800 hover:bg-gray-300 active:bg-gray-400"
                           }`}
                         >
                           {option.label}
