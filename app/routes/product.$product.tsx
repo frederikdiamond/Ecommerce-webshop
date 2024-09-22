@@ -6,6 +6,16 @@ import { FullscreenImage } from "~/components/FullscreenImage";
 import { ArrowIcom } from "~/components/Icons";
 import { formatPrice } from "~/helpers/formatPrice";
 
+type ConfigOption = {
+  label: string;
+  price: number;
+};
+
+type ConfigCategory = {
+  name: string;
+  options: ConfigOption[];
+};
+
 const productPage = {
   id: 1,
   productName: "MacBook Pro 16”",
@@ -16,7 +26,27 @@ const productPage = {
     "Up to 64GB of unified memory",
     "Up to 8TB of SSD storage",
   ],
-  productPrice: 2399,
+  // productPrice: 2399,
+  basePrice: 2399,
+  configurations: [
+    {
+      name: "Memory",
+      options: [
+        { label: "16GB", price: 0 },
+        { label: "32GB", price: 400 },
+        { label: "64GB", price: 800 },
+      ],
+    },
+    {
+      name: "Storage",
+      options: [
+        { label: "512GB SSD", price: 0 },
+        { label: "1TB SSD", price: 200 },
+        { label: "2TB SSD", price: 600 },
+        { label: "4TB SSD", price: 1200 },
+      ],
+    },
+  ],
 };
 
 export default function ProductPage({
@@ -35,6 +65,10 @@ export default function ProductPage({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showEditConfiguration, setShowEditConfiguration] = useState(false);
+  const [selectedConfigurations, setSelectedConfigurations] = useState<
+    Record<string, ConfigOption>
+  >({});
 
   const images = [
     "https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/mbp16-spaceblack-select-202310?wid=904&hei=840&fmt=jpeg&qlt=90&.v=1697311054290",
@@ -68,6 +102,32 @@ export default function ProductPage({
   const handleCloseFullscreen = useCallback(() => {
     setIsFullscreen(false);
   }, []);
+
+  // const toggleConfigurationView = () => {
+  //   setShowEditConfiguration((prev) => !prev);
+  // };
+
+  const toggleConfigurationView = () => {
+    setShowEditConfiguration(!showEditConfiguration);
+  };
+
+  const handleConfigurationChange = (
+    category: string,
+    option: ConfigOption,
+  ) => {
+    setSelectedConfigurations((prev) => ({
+      ...prev,
+      [category]: option,
+    }));
+  };
+
+  const calculateTotalPrice = () => {
+    const additionalCost = Object.values(selectedConfigurations).reduce(
+      (sum, option) => sum + option.price,
+      0,
+    );
+    return productPage.basePrice + additionalCost;
+  };
 
   return (
     <main className="mt-16 flex flex-col items-center gap-20">
@@ -137,11 +197,45 @@ export default function ProductPage({
                 <li key={index}>{spec}</li>
               ))}
             </ul>
-            <button className="text-sm font-medium text-blue-500 hover:text-blue-700 hover:underline">
-              Edit Configuration
+            <button
+              onClick={toggleConfigurationView}
+              className="text-sm font-medium text-blue-500 hover:text-blue-700 hover:underline"
+            >
+              {showEditConfiguration
+                ? "Save Configuration"
+                : "Edit Configuration"}
             </button>
+            {showEditConfiguration && (
+              <div className="mt-4 space-y-4">
+                {productPage.configurations.map((category) => (
+                  <div key={category.name}>
+                    <p className="font-semibold">{category.name}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {category.options.map((option) => (
+                        <button
+                          key={option.label}
+                          onClick={() =>
+                            handleConfigurationChange(category.name, option)
+                          }
+                          className={`rounded-md px-3 py-1 text-sm ${
+                            selectedConfigurations[category.name]?.label ===
+                            option.label
+                              ? "bg-blue-500 text-white"
+                              : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                          }`}
+                        >
+                          {option.label}
+                          {option.price > 0 &&
+                            ` (+${formatPrice(option.price)})`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             <p className="mt-8 text-xl font-medium">
-              {formatPrice(productPage.productPrice)}
+              {formatPrice(calculateTotalPrice())}
             </p>
           </div>
           <div className="mt-8 flex flex-col gap-5">
