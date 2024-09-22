@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import CustomerReviewSection from "~/components/CustomerReviewSection";
 import { FullscreenImage } from "~/components/FullscreenImage";
 import { ArrowIcom } from "~/components/Icons";
+import { formatPrice } from "~/helpers/formatPrice";
 
 const productPage = {
   id: 1,
@@ -131,7 +132,7 @@ export default function ProductPage({
               {productPage.productDescription}
             </p>
             {/* If product is configurable, show button to configure. */}
-            <ul className="mt-4 list-disc pl-5 text-sm opacity-75">
+            <ul className="mt-4 list-disc pl-5 text-sm leading-loose opacity-75">
               {productPage.productSpecifications.map((spec, index) => (
                 <li key={index}>{spec}</li>
               ))}
@@ -140,7 +141,7 @@ export default function ProductPage({
               Edit Configuration
             </button>
             <p className="mt-8 text-xl font-medium">
-              ${productPage.productPrice}
+              {formatPrice(productPage.productPrice)}
             </p>
           </div>
           <div className="mt-8 flex flex-col gap-5">

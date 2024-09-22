@@ -55,7 +55,7 @@ export default function Navbar() {
             />
 
             <IconButton
-              href="#"
+              href="shopping-cart"
               icon={
                 <div className="fill-black/75 group-hover:fill-black">
                   <ShoppingCartIcon />

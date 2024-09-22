@@ -15,7 +15,7 @@ export const FullscreenImage: React.FC<FullscreenImageProps> = ({
   onClose,
 }) => {
   const imageRef = useRef<HTMLImageElement>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isHovering, setIsHovering] = useState(false);
 
   const handleBackgroundClick = useCallback(

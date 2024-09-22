@@ -1,3 +1,4 @@
+import { useState } from "react";
 import CustomerReview from "./CustomerReview";
 
 interface Review {
@@ -9,6 +10,14 @@ interface Review {
 }
 
 export default function CustomerReviewSection() {
+  const [visibleReviews, setVisibleReviews] = useState(4);
+
+  const toggleReviews = () => {
+    setVisibleReviews((prevVisible) =>
+      prevVisible === reviews.length ? 4 : reviews.length,
+    );
+  };
+
   const reviews: Review[] = [
     {
       profilePicture: "",
@@ -26,6 +35,30 @@ export default function CustomerReviewSection() {
       reviewContent:
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
     },
+    {
+      profilePicture: "",
+      profileName: "Jane Doe",
+      reviewDate: "2 days ago",
+      rating: 3,
+      reviewContent:
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+    },
+    {
+      profilePicture: "",
+      profileName: "John Smith",
+      reviewDate: "14 July, 2024",
+      rating: 3,
+      reviewContent:
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+    },
+    {
+      profilePicture: "",
+      profileName: "Jane Doe",
+      reviewDate: "2 days ago",
+      rating: 1,
+      reviewContent:
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+    },
   ];
 
   const reviewCount = reviews.length;
@@ -36,17 +69,27 @@ export default function CustomerReviewSection() {
         Reviews by Customers <span className="opacity-50">· {reviewCount}</span>
       </h2>
 
-      <div className="columns-2 gap-4">
-        {reviews.map((review, index) => (
-          <CustomerReview
-            key={index}
-            profilePicture={review.profilePicture}
-            profileName={review.profileName}
-            reviewDate={review.reviewDate}
-            rating={review.rating}
-            reviewContent={review.reviewContent}
-          />
-        ))}
+      <div className="flex flex-col items-center gap-5">
+        <div className="grid grid-cols-2 gap-4">
+          {reviews.slice(0, visibleReviews).map((review, index) => (
+            <CustomerReview
+              key={index}
+              profilePicture={review.profilePicture}
+              profileName={review.profileName}
+              reviewDate={review.reviewDate}
+              rating={review.rating}
+              reviewContent={review.reviewContent}
+            />
+          ))}
+        </div>
+        {reviews.length > 4 && (
+          <button
+            onClick={toggleReviews}
+            className="rounded-md px-3 py-1.5 text-center font-semibold text-blue-500 transition duration-200 ease-in-out hover:bg-blue-500 hover:text-white"
+          >
+            {visibleReviews < reviews.length ? "Show More" : "Show Less"}
+          </button>
+        )}
       </div>
     </div>
   );
