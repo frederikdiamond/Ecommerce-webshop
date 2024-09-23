@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@remix-run/react";
-import IconButton from "./IconButton";
+import IconButton from "../IconButton";
 import {
   HomeIcon,
   MenuIcon,
@@ -8,9 +8,9 @@ import {
   SearchIcon,
   ShoppingCartIcon,
   SupportIcon,
-} from "./Icons";
+} from "../Icons";
 import NavLink from "./NavLink";
-import ProductMenu from "./ProductMenu";
+import ProductMenu from "../ProductMenu";
 import AccountMenu from "./AccountMenu";
 
 export default function Navbar() {
