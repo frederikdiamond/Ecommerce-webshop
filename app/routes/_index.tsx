@@ -1,4 +1,5 @@
 import type { MetaFunction } from "@remix-run/node";
+import ProductCard from "~/components/ProductCard";
 
 export const meta: MetaFunction = () => {
   return [
@@ -10,9 +11,27 @@ export const meta: MetaFunction = () => {
 export default function Index() {
   return (
     <main className="mt-16">
-      {/* Replace with carousel component */}
-      <h2 className="text-2xl font-medium">Best Selling</h2>
-      <h2>Newest Products</h2>
+      <div className="mx-auto flex w-[950px] flex-col gap-10">
+        {/* Replace with carousel component */}
+        <div>
+          <h2 className="mb-3 text-2xl font-medium">Best Selling</h2>
+          <div className="flex gap-5">
+            <ProductCard
+              productName="iPhone 16 Pro Max"
+              productDescription="512GB"
+              productPrice={1099}
+              productImage="https://www.apple.com/newsroom/images/2024/09/apple-debuts-iphone-16-pro-and-iphone-16-pro-max/article/Apple-iPhone-16-Pro-hero-240909_inline.jpg.large.jpg"
+            />
+            <ProductCard
+              productName="iPhone 16 Pro Max"
+              productDescription="512GB"
+              productPrice={1099}
+              productImage="https://www.apple.com/newsroom/images/2024/09/apple-debuts-iphone-16-pro-and-iphone-16-pro-max/article/Apple-iPhone-16-Pro-hero-240909_inline.jpg.large.jpg"
+            />
+          </div>
+        </div>
+        <h2>Newest Products</h2>
+      </div>
 
       {/* <div className="flex h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-16">

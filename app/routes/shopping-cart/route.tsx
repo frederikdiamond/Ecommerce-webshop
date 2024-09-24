@@ -94,7 +94,10 @@ export default function ShoppingCart({
 
             {/* Shipping */}
             {userAddress ? (
-              <p>Shipping: Address required.</p>
+              <div className="flex justify-between">
+                <span className="opacity-50">Shipping</span>
+                <p className="text-right opacity-50">Address required.</p>
+              </div>
             ) : (
               <div className="flex justify-between">
                 <span className="opacity-50">Shipping</span>

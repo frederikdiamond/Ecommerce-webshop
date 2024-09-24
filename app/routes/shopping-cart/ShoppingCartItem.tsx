@@ -1,3 +1,4 @@
+import { Link } from "@remix-run/react";
 import { MinusIcon, PlusIcon, HeartIcon, TrashIcon } from "~/components/Icons";
 import { formatPrice } from "~/helpers/formatPrice";
 import { Product } from "~/types/ProductTypes";
@@ -16,7 +17,12 @@ export default function ShoppingCartItem({
       <div className="flex w-[350px] gap-4">
         <img src="" alt="" className="size-32 rounded-xl" />
         <div className="mt-3">
-          <h2 className="text-lg font-bold">{item.name}</h2>
+          <Link
+            to={"#"}
+            className="text-lg font-bold hover:text-blue-500 hover:underline"
+          >
+            {item.name}
+          </Link>
           {item.specs.map((spec, index) => (
             <p key={index} className="text-sm opacity-50">
               {spec}
@@ -41,13 +47,16 @@ export default function ShoppingCartItem({
             <PlusIcon className="size-6" />
           </button>
         </div>
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-4">
           {/* Add tooltips */}
-          <button className="size-5 fill-red-500">
-            <HeartIcon />
+          <button className="rounded-full fill-black/30 p-1.5 transition duration-200 hover:fill-blue-500 active:bg-black/5">
+            <HeartIcon className="size-5" />
           </button>
-          <button onClick={() => onRemove(item.id)} className="size-5 h-fit">
-            <TrashIcon />
+          <button
+            onClick={() => onRemove(item.id)}
+            className="h-fit rounded-full fill-black/30 p-1.5 transition duration-200 hover:fill-red-500 active:bg-black/5"
+          >
+            <TrashIcon className="size-5" />
           </button>
         </div>
       </div>
