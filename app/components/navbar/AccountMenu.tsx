@@ -27,10 +27,10 @@ export default function AccountMenu({ onClose }: { onClose: () => void }) {
   return (
     <div
       onClick={onClose}
-      className="fixed right-5 top-16 z-40 flex w-52 flex-col rounded-xl border border-black/10 transition duration-200 hover:border-black/20"
+      className="fixed right-5 top-16 z-40 flex w-52 flex-col rounded-xl border border-black/10 bg-white transition duration-200 hover:border-black/20"
     >
       <AccountMenuLink to="my-orders" text="Orders" first={true} />
-      <AccountMenuLink to="#" text="Wishlist" />
+      <AccountMenuLink to="my-wishlists" text="Wishlists" />
       <AccountMenuLink to="#" text="Settings" />
       <AccountMenuLink to="#" text="Log Out" last={true} />
     </div>
