@@ -9,6 +9,7 @@ import {
   varchar,
   pgEnum,
   integer,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable(
@@ -45,9 +46,9 @@ export const orderStatusEnum = pgEnum("order_status", [
 
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id),
+  userId: integer("user_id").references(() => users.id),
+  guestEmail: varchar("guest_email", { length: 255 }),
+  isGuestOrder: boolean("is_guest_order").notNull().default(false),
   status: orderStatusEnum("status").default("pending").notNull(),
   totalAmount: integer("total_amount").notNull(), // Stored in cents
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -57,6 +58,8 @@ export const orders = pgTable("orders", {
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
+  description: varchar("description", { length: 1000 }),
+  specifications: jsonb("specifications"),
   price: integer("price").notNull(), // Stored in cents
   stock: integer("stock").notNull().default(0),
   category: varchar("category", { length: 100 }),
