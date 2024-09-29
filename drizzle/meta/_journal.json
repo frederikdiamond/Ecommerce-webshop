@@ -36,6 +36,13 @@
       "when": 1727639051267,
       "tag": "0004_short_bushwacker",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1727642043438,
+      "tag": "0005_salty_spencer_smythe",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,7 @@
 import { json } from "@remix-run/node";
 import { db } from "~/db/index.server";
 import { products, orderItems } from "~/db/schema.server";
-import { eq, desc, sum } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 export async function loader() {
   const bestSellingProducts = await db
@@ -11,12 +11,13 @@ export async function loader() {
       specifications: products.specifications,
       price: products.price,
       imageUrl: products.imageUrl,
-      totalSold: sum(orderItems.quantity).as("totalSold"),
+      totalSold: products.totalSold,
     })
     .from(products)
     .innerJoin(orderItems, eq(products.id, orderItems.productId))
     .groupBy(products.id)
-    .orderBy(desc("totalSold"))
+    // .orderBy(desc(sql`COALESCE(totalSold, 0)`))
+    .orderBy(desc(products.totalSold))
     .limit(5);
 
   return json({
@@ -24,7 +25,7 @@ export async function loader() {
       ...product,
       id: product.id.toString(),
       specifications: product.specifications || [],
-      price: product.price / 100, // Convert cents to dollars if necessary
+      price: product.price / 100,
     })),
   });
 }
