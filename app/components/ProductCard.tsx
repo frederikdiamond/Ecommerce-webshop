@@ -15,8 +15,8 @@ export default function ProductCard({
   imageUrl: string;
 }) {
   return (
-    <Link key={id} to={"#"} className="group flex w-[250px] flex-col gap-2.5">
-      <div className="relative flex h-[150px] w-full items-center justify-center overflow-hidden rounded-xl">
+    <Link key={id} to={"#"} className="group flex flex-col gap-2.5">
+      <div className="relative flex h-[150px] w-[250px] items-center justify-center overflow-hidden rounded-xl">
         <img
           src={imageUrl}
           alt=""

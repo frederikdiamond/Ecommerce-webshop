@@ -1,6 +1,10 @@
-import type { LoaderFunction, MetaFunction } from "@remix-run/node";
+import { defer, type LoaderFunction, type MetaFunction } from "@remix-run/node";
 import { loader as bestSellingProductsLoader } from "~/routes/api/best-selling-products.server";
+import { loader as newestProductsLoader } from "~/routes/api/newest-products.server";
 import BestSellingProducts from "~/components/product-carousels/BestSellingProducts";
+import NewestProducts from "~/components/product-carousels/NewestProducts";
+import { Suspense } from "react";
+import { Await, useLoaderData } from "@remix-run/react";
 
 export const meta: MetaFunction = () => {
   return [
@@ -9,58 +13,73 @@ export const meta: MetaFunction = () => {
   ];
 };
 
-export const loader: LoaderFunction = bestSellingProductsLoader;
+export const loader: LoaderFunction = async ({ request }) => {
+  const bestSellingPromise = bestSellingProductsLoader().then((res) =>
+    res.json(),
+  );
+  const newestProductsPromise = newestProductsLoader({ request }).then((res) =>
+    res.json(),
+  );
+  // const bestSellingPromise = bestSellingProductsLoader();
+  // const newestProductsPromise = newestProductsLoader({ request });
+
+  return defer({
+    bestSelling: bestSellingPromise,
+    newest: newestProductsPromise,
+  });
+};
 
 export default function Index() {
+  const { bestSelling, newest } = useLoaderData<typeof loader>();
+
+  console.log("Loader data (bestSelling):", bestSelling);
+  console.log("Loader data (newest):", newest);
+
   return (
     <main className="mt-16">
       <div className="mx-auto flex w-[950px] flex-col gap-10">
-        <BestSellingProducts />
+        <Suspense fallback={<div>Loading best selling products...</div>}>
+          <Await resolve={bestSelling}>
+            {(resolvedBestSelling) => {
+              console.log("Resolved bestSelling:", resolvedBestSelling);
 
-        <h2>Newest Products</h2>
+              if (
+                !resolvedBestSelling ||
+                !resolvedBestSelling.bestSellingProducts
+              ) {
+                console.error("No best selling products found");
+                return <div>No best selling products available</div>;
+              }
+
+              return (
+                <BestSellingProducts
+                  products={resolvedBestSelling.bestSellingProducts}
+                />
+              );
+            }}
+          </Await>
+        </Suspense>
+
+        <Suspense fallback={<div>Loading newest products...</div>}>
+          <Await resolve={newest}>
+            {(resolvedNewest) => {
+              console.log("Resolved newest:", resolvedNewest);
+
+              if (
+                !resolvedNewest?.newestProducts ||
+                resolvedNewest.newestProducts.length === 0
+              ) {
+                console.error("No newest products found");
+                return <div>No newest products available</div>;
+              }
+
+              return (
+                <NewestProducts products={resolvedNewest.newestProducts} />
+              );
+            }}
+          </Await>
+        </Suspense>
       </div>
-
-      {/* <div className="flex h-screen items-center justify-center">
-        <div className="flex flex-col items-center gap-16">
-          <header className="flex flex-col items-center gap-9">
-            <h1 className="leading text-2xl font-bold text-gray-800 dark:text-gray-100">
-              Welcome to <span className="sr-only">Remix</span>
-            </h1>
-            <div className="h-[144px] w-[434px]">
-              <img
-                src="/logo-light.png"
-                alt="Remix"
-                className="block w-full dark:hidden"
-              />
-              <img
-                src="/logo-dark.png"
-                alt="Remix"
-                className="hidden w-full dark:block"
-              />
-            </div>
-          </header>
-          <nav className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-gray-200 p-6 dark:border-gray-700">
-            <p className="leading-6 text-gray-700 dark:text-gray-200">
-              What&apos;s next?
-            </p>
-            <ul>
-              {resources.map(({ href, text, icon }) => (
-                <li key={href}>
-                  <a
-                    className="group flex items-center gap-3 self-stretch p-3 leading-normal text-blue-700 hover:underline dark:text-blue-500"
-                    href={href}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {icon}
-                    {text}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
-      </div> */}
     </main>
   );
 }
