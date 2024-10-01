@@ -1,13 +1,5 @@
+import { Product } from "~/types/ProductTypes";
 import ProductCard from "../ProductCard";
-
-interface Product {
-  id: number;
-  name: string;
-  specifications: string[];
-  price: number;
-  imageUrl: string;
-  totalSold: number;
-}
 
 interface Props {
   products: Product[];
@@ -28,10 +20,11 @@ export default function BestSellingProducts({ products }: Props) {
           <ProductCard
             key={product.id}
             id={product.id.toString()}
+            slug={product.slug}
             name={product.name}
             specifications={product.specifications || []}
             price={product.price}
-            imageUrl={product.imageUrl || ""}
+            images={product.images || ""}
           />
         ))}
       </div>

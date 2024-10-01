@@ -12,10 +12,11 @@ export async function loader({ request }: { request: Request }) {
     const newestProducts = await db
       .select({
         id: products.id,
+        slug: products.slug,
         name: products.name,
         specifications: products.specifications,
         price: products.price,
-        imageUrl: products.imageUrl,
+        images: products.images,
         createdAt: products.createdAt,
       })
       .from(products)
@@ -30,31 +31,16 @@ export async function loader({ request }: { request: Request }) {
       return json({ newestProducts: [] });
     }
 
-    // return json({
-    //   newestProducts: newestProducts.map((product) => ({
-    //     ...product,
-    //     id: product.id.toString(),
-    //     specifications: product.specifications || [],
-    //     price: product.price / 100,
-    //     imageUrl: product.imageUrl || null,
-    //     createdAt: product.createdAt.toISOString(),
-    //   })),
-    // });
-
-    const mappedProducts = newestProducts.map((product) => ({
-      id: product.id?.toString() ?? "N/A",
-      name: product.name ?? "Unknown Product",
-      specifications: product.specifications ?? [],
-      price: product.price ? product.price / 100 : 0,
-      imageUrl: product.imageUrl ?? "/default-image.jpg",
-      createdAt: product.createdAt
-        ? product.createdAt.toISOString()
-        : new Date().toISOString(),
-    }));
-
-    console.log("Mapped newest products:", mappedProducts);
-
-    return json({ newestProducts: mappedProducts });
+    return json({
+      newestProducts: newestProducts.map((product) => ({
+        ...product,
+        id: product.id.toString(),
+        specifications: product.specifications || [],
+        price: product.price / 100,
+        images: product.images || null,
+        createdAt: product.createdAt.toISOString(),
+      })),
+    });
   } catch (error) {
     return json({ error: "Failed to fetch newest products" }, { status: 500 });
   }

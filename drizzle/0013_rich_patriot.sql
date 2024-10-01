@@ -1,0 +1,1 @@
+ALTER TABLE "products" ALTER COLUMN "base_price" SET DEFAULT 0;

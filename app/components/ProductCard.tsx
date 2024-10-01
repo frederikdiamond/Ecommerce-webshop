@@ -3,22 +3,28 @@ import { formatPrice } from "~/helpers/formatPrice";
 
 export default function ProductCard({
   id,
+  slug,
   name,
   specifications,
   price,
-  imageUrl,
+  images,
 }: {
   id: string;
+  slug: string;
   name: string;
   specifications: string[];
   price: number;
-  imageUrl: string;
+  images: string;
 }) {
   return (
-    <Link key={id} to={"#"} className="group flex flex-col gap-2.5">
+    <Link
+      key={id}
+      to={`/product/${slug}`}
+      className="group flex flex-col gap-2.5"
+    >
       <div className="relative flex h-[150px] w-[250px] items-center justify-center overflow-hidden rounded-xl">
         <img
-          src={imageUrl}
+          src={images}
           alt=""
           className="max-h-full transition duration-300 ease-in-out group-hover:scale-110"
         />

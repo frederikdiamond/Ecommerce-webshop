@@ -57,19 +57,65 @@ export const orders = pgTable("orders", {
 
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
   name: varchar("name", { length: 255 }).notNull(),
   description: varchar("description", { length: 1000 }),
-  specifications: jsonb("specifications"),
+  specifications: jsonb("specifications").notNull().default([]),
   price: integer("price").notNull(), // Stored in cents
+  basePrice: integer("base_price").notNull(), // No configurations. Stored in cents.
   stock: integer("stock").notNull().default(0),
   category: varchar("category", { length: 100 }),
   sku: varchar("sku", { length: 50 }).unique(),
-  imageUrl: varchar("image_url", { length: 255 }),
+  images: jsonb("images").notNull().default([]),
+  isCustomizable: boolean("is_customizable").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
   totalSold: integer("total_sold").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const productConfigurations = pgTable(
+  "product_configurations",
+  {
+    id: serial("id").primaryKey(),
+    productId: integer("product_id")
+      .notNull()
+      .references(() => products.id),
+    category: varchar("category", { length: 255 }).notNull(), // E.g., "RAM", "Storage"
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => {
+    return {
+      productCategoryIdx: uniqueIndex("product_category_idx").on(
+        table.productId,
+        table.category,
+      ),
+    };
+  },
+);
+
+export const productOptions = pgTable(
+  "product_options",
+  {
+    id: serial("id").primaryKey(),
+    configurationId: integer("configuration_id")
+      .notNull()
+      .references(() => productConfigurations.id),
+    optionLabel: varchar("option_label", { length: 255 }).notNull(), // E.g., "16GB", "1TB SSD"
+    priceModifier: integer("price_modifier").notNull(), // Price adjustment for this option in cents
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => {
+    return {
+      configOptionIdx: uniqueIndex("config_option_idx").on(
+        table.configurationId,
+        table.optionLabel,
+      ),
+    };
+  },
+);
 
 export const wishlists = pgTable("wishlists", {
   id: serial("id").primaryKey(),
@@ -102,6 +148,7 @@ export const orderItems = pgTable("order_items", {
     .references(() => products.id),
   quantity: integer("quantity").notNull(),
   priceAtPurchase: integer("price_at_purchase").notNull(), // Stored in cents
+  selectedConfigurations: jsonb("selected_configurations").notNull(),
 });
 
 export const usersRelations = relations(users, ({ many }) => ({

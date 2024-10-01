@@ -1,9 +1,13 @@
 export interface Product {
   id: number;
+  slug: string;
   name: string;
+  description: string;
   specifications: string[];
+  basePrice: number;
   price: number;
-  imageUrl: string | null;
+  images: string[];
   quantity: number;
   totalSold: number;
+  configurations: ConfigCategory[];
 }

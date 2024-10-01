@@ -8,17 +8,18 @@ export async function loader() {
     const bestSellingProducts = await db
       .select({
         id: products.id,
+        slug: products.slug,
         name: products.name,
         specifications: products.specifications,
         price: products.price,
-        imageUrl: products.imageUrl,
+        images: products.images,
         totalSold: products.totalSold,
       })
       .from(products)
       .innerJoin(orderItems, eq(products.id, orderItems.productId))
       .groupBy(products.id)
       .orderBy(desc(products.totalSold))
-      .limit(5);
+      .limit(10);
 
     if (!bestSellingProducts || bestSellingProducts.length === 0) {
       return json({ bestSellingProducts: [] });
@@ -30,6 +31,7 @@ export async function loader() {
         id: product.id.toString(),
         specifications: product.specifications || [],
         price: product.price / 100,
+        images: product.images || null,
       })),
     });
   } catch (error) {

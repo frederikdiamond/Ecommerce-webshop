@@ -1,10 +1,16 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
+import { LoaderFunction, json } from "@remix-run/node";
+import { useLoaderData, useParams } from "@remix-run/react";
+import { eq } from "drizzle-orm";
 import { useCallback, useState } from "react";
 import CustomerReviewSection from "~/components/CustomerReviewSection";
 import { FullscreenImage } from "~/components/FullscreenImage";
 import { ArrowIcom } from "~/components/Icons";
+import { db } from "~/db/index.server";
+import { products } from "~/db/schema.server";
 import { formatPrice } from "~/helpers/formatPrice";
+import { Product } from "~/types/ProductTypes";
 
 type ConfigOption = {
   label: string;
@@ -16,59 +22,35 @@ type ConfigCategory = {
   options: ConfigOption[];
 };
 
-const productPage = {
-  id: 1,
-  productName: "MacBook Pro 16”",
-  productDescription: "The most powerful MacBook ever.",
-  productSpecifications: [
-    "16-inch Retina display",
-    "M1 Pro or M1 Max chip",
-    "Up to 64GB of unified memory",
-    "Up to 8TB of SSD storage",
-  ],
-  // productPrice: 2399,
-  basePrice: 2399,
-  configurations: [
-    {
-      name: "Chip",
-      options: [
-        { label: "M3 Pro", price: 0 },
-        { label: "M3 Max", price: 400 },
-      ],
-    },
-    {
-      name: "Memory",
-      options: [
-        { label: "16GB", price: 0 },
-        { label: "32GB", price: 400 },
-        { label: "64GB", price: 800 },
-      ],
-    },
-    {
-      name: "Storage",
-      options: [
-        { label: "512GB SSD", price: 0 },
-        { label: "1TB SSD", price: 200 },
-        { label: "2TB SSD", price: 600 },
-        { label: "4TB SSD", price: 1200 },
-      ],
-    },
-  ],
+export const loader: LoaderFunction = async ({ params }) => {
+  const { slug } = params;
+
+  if (!slug) {
+    throw new Response("Bad Request", { status: 400 });
+  }
+
+  try {
+    const productResult = await db
+      .select()
+      .from(products)
+      .where(eq(products.slug, slug));
+
+    if (!productResult || productResult.length === 0) {
+      throw new Response("Product Not Found", { status: 404 });
+    }
+
+    const product: Product = productResult[0];
+    return json({ product });
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    throw new Response("Server Error", { status: 500 });
+  }
 };
 
-export default function ProductPage({
-  productName,
-  productDescription,
-  productSpecifications,
-  productPrice,
-  productImages,
-}: {
-  productName: string;
-  productDescription: string;
-  productSpecifications: string[];
-  productPrice: number;
-  productImages: string[];
-}) {
+export default function ProductPage() {
+  const { product } = useLoaderData<{ product: Product }>();
+  const params = useParams();
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -77,14 +59,11 @@ export default function ProductPage({
     Record<string, ConfigOption>
   >({});
 
-  const images = [
-    "https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/mbp16-spaceblack-select-202310?wid=904&hei=840&fmt=jpeg&qlt=90&.v=1697311054290",
-    "https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/mbp16-spaceblack-gallery2-202310_GEO_DK?wid=4000&hei=3074&fmt=jpeg&qlt=90&.v=1698156926558",
-    "https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/mbp16-spaceblack-gallery3-202310?wid=4000&hei=3074&fmt=jpeg&qlt=90&.v=1697311164734",
-    "https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/mbp16-spaceblack-gallery4-202310?wid=4000&hei=3074&fmt=jpeg&qlt=90&.v=1697311165217",
-    "https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/mbp16-spaceblack-gallery5-202310?wid=4000&hei=3074&fmt=jpeg&qlt=90&.v=1697311166953",
-    "https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/mbp16-spaceblack-gallery6-202310?wid=4000&hei=3074&fmt=jpeg&qlt=90&.v=1697311170821",
-  ];
+  if (!product) {
+    return <div>Product not found: {params.slug}</div>;
+  }
+
+  const images = product.images || [product.images];
 
   const goToIndex = (index: number) => {
     setCurrentIndex(index);
@@ -129,7 +108,7 @@ export default function ProductPage({
       (sum, option) => sum + option.price,
       0,
     );
-    return productPage.basePrice + additionalCost;
+    return product.basePrice + additionalCost;
   };
 
   return (
@@ -146,7 +125,7 @@ export default function ProductPage({
               <img
                 src={images[currentIndex]}
                 alt={`Product ${currentIndex + 1}`}
-                className="absolute h-full w-full rounded-2xl object-cover"
+                className="absolute h-full w-full rounded-2xl object-contain"
               />
             </div>
             <button
@@ -190,13 +169,11 @@ export default function ProductPage({
         </div>
         <div className="mt-36">
           <div>
-            <h1 className="text-3xl font-bold">{productPage.productName}</h1>
-            <p className="mt-3.5 text-lg font-medium">
-              {productPage.productDescription}
-            </p>
+            <h1 className="text-3xl font-bold">{product.name}</h1>
+            <p className="mt-3.5 text-lg font-medium">{product.description}</p>
             {/* If product is configurable, show button to configure. */}
             <ul className="mt-4 list-disc pl-5 text-sm leading-loose opacity-75">
-              {productPage.productSpecifications.map((spec, index) => (
+              {product.specifications.map((spec, index) => (
                 <li key={index}>{spec}</li>
               ))}
             </ul>
@@ -210,7 +187,7 @@ export default function ProductPage({
             </button>
             {showEditConfiguration && (
               <div className="mt-4 space-y-4">
-                {productPage.configurations.map((category) => (
+                {product.configurations.map((category) => (
                   <div key={category.name}>
                     <p className="font-semibold">{category.name}</p>
                     <div className="mt-2 flex flex-wrap gap-2">
