@@ -1,6 +1,6 @@
 import { defer, type LoaderFunction, type MetaFunction } from "@remix-run/node";
-import { loader as bestSellingProductsLoader } from "~/routes/api/best-selling-products.server";
-import { loader as newestProductsLoader } from "~/routes/api/newest-products.server";
+import { loader as bestSellingProductsLoader } from "./api.best-selling-products.server";
+import { loader as newestProductsLoader } from "./api.newest-products.server";
 import BestSellingProducts from "~/components/product-carousels/BestSellingProducts";
 import NewestProducts from "~/components/product-carousels/NewestProducts";
 import { Suspense } from "react";

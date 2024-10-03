@@ -17,10 +17,24 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export async function action({ request }: ActionFunctionArgs) {
   const form = await request.formData();
+
   const email = form.get("email");
   const username = form.get("username");
   const password = form.get("password");
   const confirmPassword = form.get("confirmPassword");
+  const firstName = form.get("firstName");
+  const lastName = form.get("lastName");
+  const dateOfBirth = form.get("dateOfBirth");
+
+  console.log("Received form data:", {
+    email,
+    username,
+    password,
+    confirmPassword,
+    firstName,
+    lastName,
+    dateOfBirth,
+  });
 
   if (
     typeof email !== "string" ||
@@ -31,7 +45,7 @@ export async function action({ request }: ActionFunctionArgs) {
     return json({ error: "Invalid form submission" }, { status: 400 });
   }
 
-  if (!email || !password || !confirmPassword) {
+  if (!email || !username || !password || !confirmPassword) {
     return json({ error: "All fields are required" }, { status: 400 });
   }
 
@@ -40,26 +54,31 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   try {
-    const response = await fetch("/api/create-account", {
+    const apiUrl = new URL("/api/create-account", request.url);
+    const apiRequest = new Request(apiUrl, {
       method: "POST",
       body: form,
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({ email, password }),
     });
 
-    const data = await response.json();
+    const response = await fetch(apiRequest);
+    // const data = await response.json();
 
     if (!response.ok) {
-      return json({ error: data.error }, { status: response.status });
+      const errorData = await response.json();
+      return json(
+        { error: errorData.error || "An error occurred" },
+        { status: response.status },
+      );
     }
 
     // After creating the account, log the user in
     await authenticator.authenticate("user-pass", request, {
       successRedirect: "/",
       failureRedirect: "/login",
-      //   context: { formData: form },
+      context: { formData: form },
     });
   } catch (error) {
+    console.error("Account creation error:", error);
     return json({ error: "Failed to create account" }, { status: 500 });
   }
 }

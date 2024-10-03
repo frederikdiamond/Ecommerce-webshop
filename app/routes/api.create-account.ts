@@ -1,7 +1,7 @@
 import { json } from "@remix-run/node";
 import type { ActionFunctionArgs } from "@remix-run/node";
 import * as argon2 from "argon2";
-import { eq, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "~/db/index.server";
 import { users } from "~/db/schema.server";
 
@@ -9,6 +9,9 @@ export async function action({ request }: ActionFunctionArgs) {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed" }, { status: 405 });
   }
+
+  // let { email, username, password, firstName, lastName, dateOfBirth } =
+  //   await request.json();
 
   const form = await request.formData();
   const email = form.get("email");
@@ -31,8 +34,9 @@ export async function action({ request }: ActionFunctionArgs) {
     const existingUser = await db
       .select()
       .from(users)
-      .where(or(eq(users.email, email), eq(users.username, username)))
+      .where(eq(users.email, email))
       .execute();
+
     if (existingUser.length > 0) {
       return json({ error: "User already exists" }, { status: 400 });
     }
@@ -44,8 +48,8 @@ export async function action({ request }: ActionFunctionArgs) {
     const [newUser] = await db
       .insert(users)
       .values({
-        username: username,
-        email: email,
+        username,
+        email,
         passwordHash: hashedPassword,
         firstName: firstName ? String(firstName) : null,
         lastName: lastName ? String(lastName) : null,

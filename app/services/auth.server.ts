@@ -14,9 +14,18 @@ type User = {
 export const authenticator = new Authenticator<User>(sessionStorage);
 
 authenticator.use(
-  new FormStrategy(async ({ form }) => {
+  new FormStrategy(async ({ context }) => {
+    if (!context?.formData) {
+      throw new Error("FormData must be provided in the Context");
+    }
+
+    const form = context.formData as FormData;
+
     const email = form.get("email") as string;
     const password = form.get("password") as string;
+
+    console.log("Received email:", email);
+    console.log("Received password:", password);
 
     // Validate form inputs
     if (!email || !password) {
@@ -29,6 +38,8 @@ authenticator.use(
       .from(users)
       .where(eq(users.email, email))
       .execute();
+
+    console.log("User found:", user);
 
     if (!user) {
       throw new Error("User not found");
