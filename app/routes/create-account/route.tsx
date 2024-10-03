@@ -1,7 +1,7 @@
 import { json, redirect } from "@remix-run/node";
 import { Form, useActionData } from "@remix-run/react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { authenticator } from "~/services/auth.server"; // Adjust this import path as needed
+import { authenticator } from "~/services/auth.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   // Check if the user is already authenticated
@@ -16,7 +16,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  const form = await request.formData();
+  const clonedRequest = request.clone();
+  const form = await clonedRequest.formData();
 
   const email = form.get("email");
   const username = form.get("username");
@@ -75,7 +76,6 @@ export async function action({ request }: ActionFunctionArgs) {
     await authenticator.authenticate("user-pass", request, {
       successRedirect: "/",
       failureRedirect: "/login",
-      context: { formData: form },
     });
   } catch (error) {
     console.error("Account creation error:", error);
