@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "@remix-run/react";
+import { Link, useLoaderData } from "@remix-run/react";
 import IconButton from "../IconButton";
 import {
   HomeIcon,
@@ -12,11 +12,21 @@ import {
 import NavLink from "./NavLink";
 import ProductMenu from "../ProductMenu";
 import AccountMenu from "./AccountMenu";
+import { json, LoaderFunctionArgs } from "@remix-run/node";
+import { authenticator } from "~/services/auth.server";
+import { Button } from "../Buttons";
+
+export async function loader({ request }: LoaderFunctionArgs) {
+  const user = await authenticator.isAuthenticated(request);
+
+  return json({ user });
+}
 
 export default function Navbar() {
   const [isProductMenuOpen, setIsProductMenuOpen] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
+  const data = useLoaderData<typeof loader>();
 
   const toggleAccountMenu = () => {
     setShowAccountMenu(!showAccountMenu);
@@ -96,28 +106,37 @@ export default function Navbar() {
               }
             />
 
-            <div ref={accountMenuRef}>
-              <button
-                onClick={toggleAccountMenu}
-                className="flex items-center gap-3.5 rounded-xl p-2.5 opacity-50 transition-all duration-200 ease-in-out hover:bg-black/10 hover:opacity-100 active:bg-black/20"
-              >
-                <div className="size-5">
-                  <PersonIcon />
-                </div>
-                <span>My Account</span>
-                <svg
-                  className={`${showAccountMenu ? "rotate-180" : "rotate-0"} size-3.5 transition-all duration-300 ease-in-out`}
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 616 614"
+            {data?.user ? (
+              <div ref={accountMenuRef}>
+                <button
+                  onClick={toggleAccountMenu}
+                  className="flex items-center gap-3.5 rounded-xl p-2.5 opacity-50 transition-all duration-200 ease-in-out hover:bg-black/10 hover:opacity-100 active:bg-black/20"
                 >
-                  <path
-                    fill="currentColor"
-                    d="m602.442 200l-253 317c-24 29-61 29-84 0l-253-317c-24-30-12-53 25-53h540c38 0 49 23 25 53z"
-                  />
-                </svg>
-              </button>
-              {showAccountMenu && <AccountMenu onClose={closeAccountMenu} />}
-            </div>
+                  <div className="size-5">
+                    <PersonIcon />
+                  </div>
+                  <span>My Account</span>
+                  <svg
+                    className={`${showAccountMenu ? "rotate-180" : "rotate-0"} size-3.5 transition-all duration-300 ease-in-out`}
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 616 614"
+                  >
+                    <path
+                      fill="currentColor"
+                      d="m602.442 200l-253 317c-24 29-61 29-84 0l-253-317c-24-30-12-53 25-53h540c38 0 49 23 25 53z"
+                    />
+                  </svg>
+                </button>
+                {showAccountMenu && <AccountMenu onClose={closeAccountMenu} />}
+              </div>
+            ) : (
+              <div className="flex gap-2.5">
+                <Button url="/login" variant="secondary">
+                  Login
+                </Button>
+                <Button url="/create-account">Create Account</Button>
+              </div>
+            )}
           </div>
         </div>
       </nav>
