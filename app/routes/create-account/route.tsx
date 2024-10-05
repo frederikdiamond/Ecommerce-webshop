@@ -2,6 +2,8 @@ import { json, redirect } from "@remix-run/node";
 import { Form, useActionData } from "@remix-run/react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { authenticator } from "~/services/auth.server";
+import { FloatingLabelInput } from "~/components/TextInput";
+import { CustomButton, CustomLink } from "~/components/Buttons";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   // Check if the user is already authenticated
@@ -88,43 +90,60 @@ export default function CreateAccount() {
 
   return (
     <main>
-      <div className="mt-52">
-        <h1>Create Account</h1>
-        <Form method="post">
-          <div>
-            <label htmlFor="username">Username:</label>
-            <input type="text" id="username" name="username" required />
-          </div>
-          <div>
-            <label htmlFor="email">Email:</label>
-            <input type="email" id="email" name="email" required />
-          </div>
-          <div>
-            <label htmlFor="password">Password:</label>
-            <input type="password" id="password" name="password" required />
-          </div>
-          <div>
-            <label htmlFor="confirmPassword">Confirm Password:</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="firstName">First Name:</label>
-            <input type="text" id="firstName" name="firstName" />
-          </div>
-          <div>
-            <label htmlFor="lastName">Last Name:</label>
-            <input type="text" id="lastName" name="lastName" />
-          </div>
-          <div>
-            <label htmlFor="dateOfBirth">Date of Birth:</label>
+      <div className="mt-52 flex flex-col items-center gap-10">
+        <h1 className="text-center text-2xl font-semibold">Create Account</h1>
+        <Form method="post" className="flex w-96 flex-col items-center gap-5">
+          <FloatingLabelInput
+            label="First Name"
+            name="firstName"
+            id="firstName"
+            required
+          />
+          <FloatingLabelInput
+            label="Last Name"
+            name="lastName"
+            id="lastName"
+            required
+          />
+          <div className="flex w-full justify-between px-4">
+            <label htmlFor="dateOfBirth" className="font-semibold">
+              Date of Birth
+            </label>
             <input type="date" id="dateOfBirth" name="dateOfBirth" />
           </div>
-          <button type="submit">Create Account</button>
+          <FloatingLabelInput
+            label="Username"
+            name="username"
+            id="username"
+            required
+          />
+          <FloatingLabelInput label="Email" name="email" id="email" required />
+          <FloatingLabelInput
+            label="Password"
+            name="password"
+            id="password"
+            type="password"
+            required
+          />
+          <FloatingLabelInput
+            label="Confirm Password"
+            name="confirmPassword"
+            id="confirmPassword"
+            type="password"
+            required
+          />
+
+          <div className="mt-5 flex w-[170px] flex-col items-center gap-10">
+            <CustomButton type="submit" className="w-full">
+              Create Account
+            </CustomButton>
+            <div className="flex w-full flex-col items-center gap-2.5">
+              <p className="text-center">Already have an account?</p>
+              <CustomLink url="/login" variant="secondary" className="w-full">
+                Login
+              </CustomLink>
+            </div>
+          </div>
         </Form>
         {actionData?.error && (
           <p style={{ color: "red" }}>{actionData.error}</p>

@@ -8,7 +8,7 @@ import { Await, useLoaderData } from "@remix-run/react";
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "New Remix App" },
+    { title: "TechVibe" },
     { name: "description", content: "Portfolio project" },
   ];
 };

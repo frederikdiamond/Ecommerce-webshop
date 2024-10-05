@@ -2,26 +2,45 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { Form, useActionData } from "@remix-run/react";
 import { json } from "@remix-run/node";
 import { authenticator } from "~/services/auth.server";
+import { CustomButton, CustomLink } from "~/components/Buttons";
+import { FloatingLabelInput } from "~/components/TextInput";
 
 export default function Login() {
   const actionData = useActionData<typeof action>();
-
   return (
     <main>
-      <div className="mt-52">
-        <h1>Login</h1>
-        <Form method="post">
-          <p>Email</p>
-          <input type="email" id="email" name="email" required />
-          <p>Password</p>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            autoComplete="current-password"
+      <div className="mt-52 flex flex-col items-center gap-10">
+        <h1 className="text-center text-2xl font-semibold">Login</h1>
+        <Form method="post" className="flex w-96 flex-col items-center gap-5">
+          <FloatingLabelInput
+            label="Username or Email"
+            name="login"
+            id="login"
             required
           />
-          <button type="submit">Sign In</button>
+          <FloatingLabelInput
+            label="Password"
+            name="password"
+            id="password"
+            type="password"
+            required
+          />
+
+          <div className="mt-5 flex w-[170px] flex-col items-center gap-10">
+            <CustomButton type="submit" className="w-full">
+              Login
+            </CustomButton>
+            <div className="flex w-full flex-col items-center gap-2.5">
+              <p className="text-center">Don&apos;t already have an account?</p>
+              <CustomLink
+                url="/create-account"
+                variant="secondary"
+                className="w-full"
+              >
+                Create Account
+              </CustomLink>
+            </div>
+          </div>
         </Form>
         {actionData?.error && (
           <p style={{ color: "red" }}>{actionData.error}</p>
@@ -33,22 +52,42 @@ export default function Login() {
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
-  const email = formData.get("email");
+  const login = formData.get("login");
   const password = formData.get("password");
+
+  const isEmail = (input: string) => /\S+@\S+\.\S+/.test(input);
+
   console.log("Received form data:", Object.fromEntries(formData));
 
-  console.log({ email, password });
+  console.log({ login, password });
 
-  if (!email || !password) {
+  if (!login || !password) {
     return json({ error: "Email and password are required" }, { status: 400 });
   }
 
   try {
-    return await authenticator.authenticate("user-pass", request, {
-      successRedirect: "/",
-      failureRedirect: "/login",
-      throwOnError: true,
-    });
+    if (isEmail(login.toString())) {
+      return await authenticator.authenticate("user-pass", request, {
+        successRedirect: "/",
+        failureRedirect: "/login",
+        throwOnError: true,
+        context: { email: login, password },
+      });
+    } else {
+      return await authenticator.authenticate("user-pass", request, {
+        successRedirect: "/",
+        failureRedirect: "/login",
+        throwOnError: true,
+        context: { username: login, password },
+      });
+    }
+
+    // Test before removing:
+    // return await authenticator.authenticate("user-pass", request, {
+    //   successRedirect: "/",
+    //   failureRedirect: "/login",
+    //   throwOnError: true,
+    // });
   } catch (error) {
     console.error("Authentication error:", error);
     if (error instanceof Error) {

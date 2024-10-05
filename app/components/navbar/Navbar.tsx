@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useLoaderData } from "@remix-run/react";
+import { Link } from "@remix-run/react";
 import IconButton from "../IconButton";
 import {
   HomeIcon,
@@ -12,21 +12,12 @@ import {
 import NavLink from "./NavLink";
 import ProductMenu from "../ProductMenu";
 import AccountMenu from "./AccountMenu";
-import { json, LoaderFunctionArgs } from "@remix-run/node";
-import { authenticator } from "~/services/auth.server";
-import { Button } from "../Buttons";
+import { CustomLink } from "../Buttons";
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  const user = await authenticator.isAuthenticated(request);
-
-  return json({ user });
-}
-
-export default function Navbar() {
+export default function Navbar({ user }: { user: any }) {
   const [isProductMenuOpen, setIsProductMenuOpen] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
-  const data = useLoaderData<typeof loader>();
 
   const toggleAccountMenu = () => {
     setShowAccountMenu(!showAccountMenu);
@@ -106,7 +97,7 @@ export default function Navbar() {
               }
             />
 
-            {data?.user ? (
+            {user ? (
               <div ref={accountMenuRef}>
                 <button
                   onClick={toggleAccountMenu}
@@ -131,10 +122,10 @@ export default function Navbar() {
               </div>
             ) : (
               <div className="flex gap-2.5">
-                <Button url="/login" variant="secondary">
+                <CustomLink url="/login" variant="secondary">
                   Login
-                </Button>
-                <Button url="/create-account">Create Account</Button>
+                </CustomLink>
+                <CustomLink url="/create-account">Create Account</CustomLink>
               </div>
             )}
           </div>

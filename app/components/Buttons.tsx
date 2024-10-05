@@ -1,7 +1,7 @@
 import { Link } from "@remix-run/react";
 import { twMerge } from "tailwind-merge";
 
-export const Button = ({
+export const CustomLink = ({
   url,
   className,
   variant = "primary",
@@ -12,12 +12,49 @@ export const Button = ({
   variant?: "primary" | "secondary";
   children: React.ReactNode;
 }) => {
+  const baseStyles = "px-5 py-3 text-center rounded-xl font-semibold";
+  const variantStyles = {
+    primary: " bg-gradient-to-b from-[#0EBEFE] to-[#312FAD] text-white",
+    secondary:
+      "text-black hover:bg-black/10 active:bg-black/20 transition-all duration-200 ease-in-out",
+  };
+
+  const scaleEffect =
+    variant === "primary"
+      ? "transition duration-200 ease-in-out hover:scale-105 active:scale-95"
+      : "transition duration-200 ease-in-out active:scale-95";
+
+  const mergedClassName = twMerge(
+    baseStyles,
+    variantStyles[variant],
+    scaleEffect,
+    className,
+  );
+
+  return (
+    <Link to={url} className={mergedClassName}>
+      {children}
+    </Link>
+  );
+};
+
+export const CustomButton = ({
+  className,
+  variant = "primary",
+  type = "button",
+  children,
+}: {
+  className?: string;
+  variant?: "primary" | "secondary";
+  type?: "button" | "submit" | "reset";
+  children: React.ReactNode;
+}) => {
   const baseStyles = "px-4 py-2 rounded-md";
   const variantStyles = {
     primary:
-      "rounded-xl bg-gradient-to-b from-[#0EBEFE] to-[#312FAD] px-5 py-3 text-center font-semibold text-white",
+      "rounded-xl bg-gradient-to-b from-[#0EBEFE] to-[#312FAD] px-5 py-3 text-center font-semibold text-white transition duration-200 ease-in-out hover:scale-105 active:scale-95",
     secondary:
-      "rounded-xl text-center font-semibold text-black px-5 py-3 hover:bg-black/10 active:bg-black/20 transition-all duration-200 ease-in-out",
+      "rounded-xl text-center font-semibold text-black px-5 py-3 hover:bg-black/10 active:bg-black/20 transition-all duration-200 ease-in-out active:scale-95",
   };
 
   const mergedClassName = twMerge(
@@ -26,20 +63,9 @@ export const Button = ({
     className,
   );
 
-  const scaleEffect = [
-    variant === "primary"
-      ? "transition duration-200 ease-in-out hover:scale-105 active:scale-95"
-      : "",
-    variant === "secondary"
-      ? "transition duration-200 ease-in-out active:scale-95"
-      : "",
-  ];
-
   return (
-    <div className={twMerge(scaleEffect)}>
-      <Link to={url} className={mergedClassName}>
-        {children}
-      </Link>
-    </div>
+    <button type={type} className={mergedClassName}>
+      {children}
+    </button>
   );
 };
