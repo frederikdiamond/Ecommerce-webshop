@@ -5,13 +5,9 @@ import * as argon2 from "argon2";
 import { db } from "~/db/index.server";
 import { users } from "~/db/schema.server";
 import { eq } from "drizzle-orm";
+import { User } from "~/types/UserTypes";
 
-type User = {
-  id: number;
-  email: string;
-};
-
-const authenticator = new Authenticator<any>(sessionStorage);
+const authenticator = new Authenticator<User>(sessionStorage);
 
 const formStrategy = new FormStrategy(async ({ form }) => {
   const login = form.get("login") as string;

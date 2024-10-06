@@ -15,7 +15,7 @@ export const FloatingLabelInput = ({
   id?: string;
   name?: string;
   value?: string;
-  onChange?: (...args: any[]) => any;
+  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   className?: string;
   required?: boolean;
 }) => {

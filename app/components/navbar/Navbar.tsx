@@ -13,8 +13,9 @@ import NavLink from "./NavLink";
 import ProductMenu from "../ProductMenu";
 import AccountMenu from "./AccountMenu";
 import { CustomLink } from "../Buttons";
+import { User } from "~/types/UserTypes";
 
-export default function Navbar({ user }: { user: any }) {
+export default function Navbar({ user }: { user: User }) {
   const [isProductMenuOpen, setIsProductMenuOpen] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);

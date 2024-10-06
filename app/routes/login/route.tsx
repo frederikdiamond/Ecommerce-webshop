@@ -38,8 +38,8 @@ export default function Login() {
   console.log("Action data:", actionData);
 
   const [formData, setFormData] = useState({
-    login: actionData?.fields?.login || "",
-    password: actionData?.fields?.password || "",
+    login: "",
+    password: "",
   });
 
   const [isFormValid, setIsFormValid] = useState(false);
