@@ -1,6 +1,7 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
-import { Link } from "@remix-run/react";
+
+import { Form, Link } from "@remix-run/react";
 
 const AccountMenuLink = ({
   to,
@@ -23,6 +24,19 @@ const AccountMenuLink = ({
   );
 };
 
+const LogoutBtn = ({ first, last }: { first?: boolean; last?: boolean }) => {
+  return (
+    <Form method="post" action="/logout" onClick={(e) => e.stopPropagation()}>
+      <button
+        type="submit"
+        className={`w-full py-2.5 pl-4 text-start font-medium opacity-50 transition duration-200 hover:bg-black/5 hover:opacity-100 active:bg-black/15 ${first ? "rounded-t-[11px]" : null} ${last ? "rounded-b-[11px]" : null}`}
+      >
+        Log Out
+      </button>
+    </Form>
+  );
+};
+
 export default function AccountMenu({ onClose }: { onClose: () => void }) {
   return (
     <div
@@ -32,7 +46,7 @@ export default function AccountMenu({ onClose }: { onClose: () => void }) {
       <AccountMenuLink to="my-orders" text="Orders" first={true} />
       <AccountMenuLink to="my-wishlists" text="Wishlists" />
       <AccountMenuLink to="#" text="Settings" />
-      <AccountMenuLink to="#" text="Log Out" last={true} />
+      <LogoutBtn last={true} />
     </div>
   );
 }

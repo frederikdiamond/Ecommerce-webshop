@@ -11,7 +11,7 @@ import type { LinksFunction, LoaderFunction } from "@remix-run/node";
 
 import "./tailwind.css";
 import Navbar from "./components/navbar/Navbar";
-import { authenticator } from "./services/auth.server";
+import { authenticator } from "./routes/services/auth.server";
 
 export const loader: LoaderFunction = async ({ request }) => {
   const user = await authenticator.isAuthenticated(request);

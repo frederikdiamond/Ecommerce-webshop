@@ -1,14 +1,22 @@
+import { twMerge } from "tailwind-merge";
+
 export const FloatingLabelInput = ({
   type = "text",
   label,
   id,
   name,
+  value,
+  onChange = () => {},
+  className,
   required = false,
 }: {
   type?: string;
   label: string;
   id?: string;
   name?: string;
+  value?: string;
+  onChange?: (...args: any[]) => any;
+  className?: string;
   required?: boolean;
 }) => {
   return (
@@ -17,8 +25,13 @@ export const FloatingLabelInput = ({
         type={type}
         id={id}
         name={name}
+        onChange={onChange}
+        value={value}
         required={required}
-        className="peer block w-full appearance-none rounded-2xl border-2 border-gray-300 border-transparent bg-black/5 px-4 pb-2.5 pt-5 text-gray-900 transition duration-300 ease-in-out hover:bg-black/10 focus:border-blue-600 focus:outline-none focus:ring-0"
+        className={twMerge(
+          "peer block w-full appearance-none rounded-2xl border-2 border-gray-300 border-transparent bg-black/5 px-4 pb-2.5 pt-5 text-gray-900 transition duration-300 ease-in-out hover:bg-black/10 focus:border-blue-600 focus:outline-none focus:ring-0",
+          className,
+        )}
         placeholder=" "
       />
       <label

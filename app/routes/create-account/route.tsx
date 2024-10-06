@@ -1,7 +1,7 @@
 import { json, redirect } from "@remix-run/node";
 import { Form, useActionData } from "@remix-run/react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { authenticator } from "~/services/auth.server";
+import { authenticator } from "~/routes/services/auth.server";
 import { FloatingLabelInput } from "~/components/TextInput";
 import { CustomButton, CustomLink } from "~/components/Buttons";
 
@@ -56,14 +56,30 @@ export async function action({ request }: ActionFunctionArgs) {
     return json({ error: "Passwords do not match" }, { status: 400 });
   }
 
+  const formDataObject = {
+    email,
+    username,
+    password,
+    confirmPassword,
+    firstName,
+    lastName,
+    dateOfBirth,
+  };
+
   try {
     const apiUrl = new URL("/api/create-account", request.url);
-    const apiRequest = new Request(apiUrl, {
+    // const apiRequest = new Request(apiUrl, {
+    const response = await fetch(apiUrl, {
       method: "POST",
-      body: form,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formDataObject),
+      redirect: "follow",
+      // body: form,
     });
 
-    const response = await fetch(apiRequest);
+    // const response = await fetch(apiRequest);
     // const data = await response.json();
 
     if (!response.ok) {
@@ -76,8 +92,8 @@ export async function action({ request }: ActionFunctionArgs) {
 
     // After creating the account, log the user in
     await authenticator.authenticate("user-pass", request, {
-      successRedirect: "/",
-      failureRedirect: "/login",
+      successRedirect: "/login",
+      failureRedirect: "/create-account",
     });
   } catch (error) {
     console.error("Account creation error:", error);
