@@ -1,108 +1,81 @@
 import { json, redirect } from "@remix-run/node";
 import { Form, useActionData } from "@remix-run/react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { authenticator } from "~/routes/services/auth.server";
+import { authenticator } from "~/services/auth.server";
 import { FloatingLabelInput } from "~/components/TextInput";
 import { CustomButton, CustomLink } from "~/components/Buttons";
+import { useState } from "react";
+import { createUser } from "~/utils/createUser.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  // Check if the user is already authenticated
-  const user = await authenticator.isAuthenticated(request);
-
-  // Show home page if user is already authenticated
-  if (user) {
-    return redirect("/");
-  }
-
-  return json({});
+  const user = await authenticator.isAuthenticated(request, {
+    successRedirect: "/",
+  });
+  return { user };
 }
 
 export async function action({ request }: ActionFunctionArgs) {
+  // const form = await request.formData();
   const clonedRequest = request.clone();
   const form = await clonedRequest.formData();
-
-  const email = form.get("email");
-  const username = form.get("username");
-  const password = form.get("password");
-  const confirmPassword = form.get("confirmPassword");
-  const firstName = form.get("firstName");
-  const lastName = form.get("lastName");
-  const dateOfBirth = form.get("dateOfBirth");
-
-  console.log("Received form data:", {
-    email,
-    username,
-    password,
-    confirmPassword,
-    firstName,
-    lastName,
-    dateOfBirth,
-  });
+  const action = form.get("_action");
+  const firstName = form.get("firstName")?.toString() || "";
+  const lastName = form.get("lastName")?.toString() || "";
+  const dateOfBirth = form.get("dateOfBirth")?.toString() || "";
+  const username = form.get("username")?.toString() || "";
+  const email = form.get("email")?.toString() || "";
+  const password = form.get("password")?.toString() || "";
+  const confirmPassword = form.get("confirmPassword")?.toString() || "";
 
   if (
-    typeof email !== "string" ||
-    typeof username !== "string" ||
-    typeof password !== "string" ||
-    typeof confirmPassword !== "string"
+    !firstName ||
+    !lastName ||
+    !username ||
+    !email ||
+    !password ||
+    !confirmPassword
   ) {
-    return json({ error: "Invalid form submission" }, { status: 400 });
-  }
-
-  if (!email || !username || !password || !confirmPassword) {
-    return json({ error: "All fields are required" }, { status: 400 });
+    return json(
+      { error: "All fields are required", form: action },
+      { status: 400 },
+    );
   }
 
   if (password !== confirmPassword) {
     return json({ error: "Passwords do not match" }, { status: 400 });
   }
 
-  const formDataObject = {
-    email,
-    username,
-    password,
-    confirmPassword,
+  await createUser({
     firstName,
     lastName,
+    username,
     dateOfBirth,
-  };
+    email,
+    password,
+  });
 
-  try {
-    const apiUrl = new URL("/api/create-account", request.url);
-    // const apiRequest = new Request(apiUrl, {
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(formDataObject),
-      redirect: "follow",
-      // body: form,
-    });
-
-    // const response = await fetch(apiRequest);
-    // const data = await response.json();
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      return json(
-        { error: errorData.error || "An error occurred" },
-        { status: response.status },
-      );
-    }
-
-    // After creating the account, log the user in
-    await authenticator.authenticate("user-pass", request, {
-      successRedirect: "/login",
-      failureRedirect: "/create-account",
-    });
-  } catch (error) {
-    console.error("Account creation error:", error);
-    return json({ error: "Failed to create account" }, { status: 500 });
-  }
+  return redirect("/login");
 }
 
 export default function CreateAccount() {
   const actionData = useActionData<typeof action>();
+
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    dateOfBirth: "",
+    email: "",
+    username: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  const handleInputChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    field: string,
+  ) => {
+    setFormData((form) => ({ ...form, [field]: event.target.value }));
+  };
 
   return (
     <main>
@@ -113,32 +86,53 @@ export default function CreateAccount() {
             label="First Name"
             name="firstName"
             id="firstName"
+            value={formData.firstName}
+            onChange={(e) => handleInputChange(e, "firstName")}
             required
           />
           <FloatingLabelInput
             label="Last Name"
             name="lastName"
             id="lastName"
+            value={formData.lastName}
+            onChange={(e) => handleInputChange(e, "lastName")}
             required
           />
           <div className="flex w-full justify-between px-4">
             <label htmlFor="dateOfBirth" className="font-semibold">
               Date of Birth
             </label>
-            <input type="date" id="dateOfBirth" name="dateOfBirth" />
+            <input
+              type="date"
+              id="dateOfBirth"
+              name="dateOfBirth"
+              value={formData.dateOfBirth}
+              onChange={(e) => handleInputChange(e, "dateOfBirth")}
+            />
           </div>
           <FloatingLabelInput
             label="Username"
             name="username"
             id="username"
+            value={formData.username}
+            onChange={(e) => handleInputChange(e, "username")}
             required
           />
-          <FloatingLabelInput label="Email" name="email" id="email" required />
+          <FloatingLabelInput
+            label="Email"
+            name="email"
+            id="email"
+            value={formData.email}
+            onChange={(e) => handleInputChange(e, "email")}
+            required
+          />
           <FloatingLabelInput
             label="Password"
             name="password"
             id="password"
             type="password"
+            value={formData.password}
+            onChange={(e) => handleInputChange(e, "password")}
             required
           />
           <FloatingLabelInput
@@ -146,6 +140,8 @@ export default function CreateAccount() {
             name="confirmPassword"
             id="confirmPassword"
             type="password"
+            value={formData.confirmPassword}
+            onChange={(e) => handleInputChange(e, "confirmPassword")}
             required
           />
 

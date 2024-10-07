@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { Form, json, useActionData } from "@remix-run/react";
-import { authenticator } from "~/routes/services/auth.server";
+import { authenticator } from "~/services/auth.server";
 import { CustomButton, CustomLink } from "~/components/Buttons";
 import { FloatingLabelInput } from "~/components/TextInput";
 import { useEffect, useState } from "react";
@@ -11,8 +11,8 @@ export async function action({ request }: ActionFunctionArgs) {
   try {
     return authenticator.authenticate("form", request, {
       successRedirect: "/",
-      // failureRedirect: "/login",
-      throwOnError: true,
+      failureRedirect: "/login",
+      // throwOnError: true,
     });
   } catch (error) {
     console.error("Error caught:", error);
