@@ -1,4 +1,5 @@
 import {
+  isRouteErrorResponse,
   json,
   Links,
   Meta,
@@ -6,6 +7,7 @@ import {
   Scripts,
   ScrollRestoration,
   useLoaderData,
+  useRouteError,
 } from "@remix-run/react";
 import type { LinksFunction, LoaderFunction } from "@remix-run/node";
 
@@ -32,8 +34,6 @@ export const links: LinksFunction = () => [
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const data = useLoaderData<{ user: any }>();
-
   return (
     <html lang="en">
       <head>
@@ -43,7 +43,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        <Navbar user={data?.user} />
         {children}
         <ScrollRestoration />
         <Scripts />
@@ -52,6 +51,35 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+export function ErrorBoundary() {
+  const error = useRouteError();
+  console.error(error);
+
+  if (isRouteErrorResponse(error)) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center text-center">
+        <h1>Error: {error.status}</h1>
+        <p>{error.statusText}</p>
+        <p>Sorry, something went wrong.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen flex-col items-center justify-center text-center">
+      <h1>Unexpected Error</h1>
+      <p>Sorry, something went wrong.</p>
+    </div>
+  );
+}
+
 export default function App() {
-  return <Outlet />;
+  const data = useLoaderData<{ user: any }>();
+
+  return (
+    <>
+      <Navbar user={data?.user} />
+      <Outlet />;
+    </>
+  );
 }

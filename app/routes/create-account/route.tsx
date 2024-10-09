@@ -1,11 +1,38 @@
-import { json, redirect } from "@remix-run/node";
-import { Form, useActionData } from "@remix-run/react";
+// import { json, redirect } from "@remix-run/node";
+import { json, redirect, useActionData } from "@remix-run/react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { authenticator } from "~/services/auth.server";
-import { FloatingLabelInput } from "~/components/TextInput";
-import { CustomButton, CustomLink } from "~/components/Buttons";
-import { useState } from "react";
 import { createUser } from "~/utils/createUser.server";
+import { CreateAccountForm } from "./create-account-form";
+import { CustomLink } from "~/components/Buttons";
+
+export function badRequest<TActionData>(data: TActionData, status = 400) {
+  return json<TActionData>(data, { status });
+}
+
+export type ActionData = {
+  error?: {
+    formError?: string[];
+    fieldErrors?: {
+      firstName?: string[];
+      lastName?: string[];
+      dateOfBirth?: string[];
+      username?: string[];
+      email?: string[];
+      password?: string[];
+      confirmPassword?: string[];
+    };
+  };
+  fields?: {
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string;
+    username: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+  };
+};
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await authenticator.isAuthenticated(request, {
@@ -15,10 +42,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  // const form = await request.formData();
   const clonedRequest = request.clone();
   const form = await clonedRequest.formData();
-  const action = form.get("_action");
   const firstName = form.get("firstName")?.toString() || "";
   const lastName = form.get("lastName")?.toString() || "";
   const dateOfBirth = form.get("dateOfBirth")?.toString() || "";
@@ -28,138 +53,87 @@ export async function action({ request }: ActionFunctionArgs) {
   const confirmPassword = form.get("confirmPassword")?.toString() || "";
 
   if (
-    !firstName ||
-    !lastName ||
-    !username ||
-    !email ||
-    !password ||
-    !confirmPassword
+    typeof firstName !== "string" ||
+    typeof lastName !== "string" ||
+    typeof dateOfBirth !== "string" ||
+    typeof username !== "string" ||
+    typeof email !== "string" ||
+    typeof password !== "string" ||
+    typeof confirmPassword !== "string"
   ) {
-    return json(
-      { error: "All fields are required", form: action },
-      { status: 400 },
-    );
+    return badRequest<ActionData>({
+      error: { formError: ["Form not submitted correctly."] },
+    });
   }
 
-  if (password !== confirmPassword) {
-    return json({ error: "Passwords do not match" }, { status: 400 });
-  }
-
-  await createUser({
+  const fields = {
     firstName,
     lastName,
-    username,
     dateOfBirth,
+    username,
     email,
     password,
-  });
+    confirmPassword,
+  };
 
-  return redirect("/login");
+  const fieldErrors = {
+    firstName: !firstName ? ["First name is required"] : undefined,
+    lastName: !lastName ? ["Last name is required"] : undefined,
+    username: !username ? ["Username is required"] : undefined,
+    email: !email
+      ? ["Email is required"]
+      : !email.includes("@")
+        ? ["Invalid email address"]
+        : undefined,
+    password: !password
+      ? ["Password is required"]
+      : password.length < 8
+        ? ["Password must be at least 8 characters long"]
+        : undefined,
+    confirmPassword:
+      password !== confirmPassword ? ["Passwords do not match"] : undefined,
+  };
+
+  if (Object.values(fieldErrors).some(Boolean)) {
+    return badRequest<ActionData>({ error: { fieldErrors }, fields });
+  }
+
+  try {
+    await createUser({
+      firstName,
+      lastName,
+      username,
+      dateOfBirth,
+      email,
+      password,
+    });
+    return redirect("/login");
+  } catch (error) {
+    return badRequest<ActionData>({
+      error: { formError: ["An unexpected error occurred. Please try again."] },
+      fields,
+    });
+  }
 }
 
 export default function CreateAccount() {
-  const actionData = useActionData<typeof action>();
-
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    dateOfBirth: "",
-    email: "",
-    username: "",
-    password: "",
-    confirmPassword: "",
-  });
-
-  const handleInputChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-    field: string,
-  ) => {
-    setFormData((form) => ({ ...form, [field]: event.target.value }));
-  };
+  const { error, fields } = useActionData<ActionData>() ?? {};
 
   return (
-    <main>
-      <div className="mt-52 flex flex-col items-center gap-10">
+    <main className="flex flex-col items-center">
+      <div className="mt-52 flex w-[350px] flex-col items-center gap-10">
         <h1 className="text-center text-2xl font-semibold">Create Account</h1>
-        <Form method="post" className="flex w-96 flex-col items-center gap-5">
-          <FloatingLabelInput
-            label="First Name"
-            name="firstName"
-            id="firstName"
-            value={formData.firstName}
-            onChange={(e) => handleInputChange(e, "firstName")}
-            required
-          />
-          <FloatingLabelInput
-            label="Last Name"
-            name="lastName"
-            id="lastName"
-            value={formData.lastName}
-            onChange={(e) => handleInputChange(e, "lastName")}
-            required
-          />
-          <div className="flex w-full justify-between px-4">
-            <label htmlFor="dateOfBirth" className="font-semibold">
-              Date of Birth
-            </label>
-            <input
-              type="date"
-              id="dateOfBirth"
-              name="dateOfBirth"
-              value={formData.dateOfBirth}
-              onChange={(e) => handleInputChange(e, "dateOfBirth")}
-            />
-          </div>
-          <FloatingLabelInput
-            label="Username"
-            name="username"
-            id="username"
-            value={formData.username}
-            onChange={(e) => handleInputChange(e, "username")}
-            required
-          />
-          <FloatingLabelInput
-            label="Email"
-            name="email"
-            id="email"
-            value={formData.email}
-            onChange={(e) => handleInputChange(e, "email")}
-            required
-          />
-          <FloatingLabelInput
-            label="Password"
-            name="password"
-            id="password"
-            type="password"
-            value={formData.password}
-            onChange={(e) => handleInputChange(e, "password")}
-            required
-          />
-          <FloatingLabelInput
-            label="Confirm Password"
-            name="confirmPassword"
-            id="confirmPassword"
-            type="password"
-            value={formData.confirmPassword}
-            onChange={(e) => handleInputChange(e, "confirmPassword")}
-            required
-          />
 
-          <div className="mt-5 flex w-[170px] flex-col items-center gap-10">
-            <CustomButton type="submit" className="w-full">
-              Create Account
-            </CustomButton>
-            <div className="flex w-full flex-col items-center gap-2.5">
-              <p className="text-center">Already have an account?</p>
-              <CustomLink url="/login" variant="secondary" className="w-full">
-                Login
-              </CustomLink>
-            </div>
+        <CreateAccountForm error={error} fields={fields} />
+
+        <div className="mt-5 flex w-[170px] flex-col items-center gap-10">
+          <div className="flex w-full flex-col items-center gap-2.5">
+            <p className="text-center">Already have an account?</p>
+            <CustomLink url="/login" variant="secondary" className="w-[170px]">
+              Login
+            </CustomLink>
           </div>
-        </Form>
-        {actionData?.error && (
-          <p style={{ color: "red" }}>{actionData.error}</p>
-        )}
+        </div>
       </div>
     </main>
   );

@@ -6,12 +6,20 @@ import { db } from "~/db/index.server";
 import { users } from "~/db/schema.server";
 import { eq } from "drizzle-orm";
 import { User } from "~/types/UserTypes";
+import { json } from "@remix-run/node";
 
 const authenticator = new Authenticator<User>(sessionStorage);
 
 const formStrategy = new FormStrategy(async ({ form }) => {
   const login = form.get("login") as string;
   const password = form.get("password") as string;
+
+  if (!login || !password) {
+    console.error("Missing login or password");
+    throw new AuthorizationError(
+      "Username or email and password are required.",
+    );
+  }
 
   const isEmail = (input: string) => /\S+@\S+\.\S+/.test(input);
 
@@ -22,16 +30,16 @@ const formStrategy = new FormStrategy(async ({ form }) => {
   const [user] = await query.execute();
 
   if (!user) {
-    throw new AuthorizationError("Invalid email or username");
+    console.error("User not found for login:", login);
+    throw new AuthorizationError("User not found");
   }
+
+  // invariant(typeof user !== "undefined", "User not found");
 
   const isPasswordValid = await argon2.verify(user.passwordHash, password);
 
   if (!isPasswordValid) {
-    throw new AuthorizationError();
-  }
-
-  if (!isPasswordValid) {
+    console.error("Incorrect password for user:", login);
     throw new AuthorizationError("Incorrect password");
   }
 

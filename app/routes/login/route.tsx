@@ -1,5 +1,9 @@
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { Form, json, useActionData } from "@remix-run/react";
+import {
+  json,
+  type ActionFunctionArgs,
+  type LoaderFunctionArgs,
+} from "@remix-run/node";
+import { Form, useActionData } from "@remix-run/react";
 import { authenticator } from "~/services/auth.server";
 import { CustomButton, CustomLink } from "~/components/Buttons";
 import { FloatingLabelInput } from "~/components/TextInput";
@@ -11,31 +15,41 @@ export async function action({ request }: ActionFunctionArgs) {
   try {
     return authenticator.authenticate("form", request, {
       successRedirect: "/",
-      failureRedirect: "/login",
-      // throwOnError: true,
+      // failureRedirect: "/login",
+      throwOnError: true,
     });
   } catch (error) {
-    console.error("Error caught:", error);
-
+    if (error instanceof Response) return error;
     if (error instanceof AuthorizationError) {
-      console.log("AuthorizationError: ", error.message);
-      return json({ error: error.message }, { status: 401 });
+      const errorMessage =
+        error.message === "User not found"
+          ? { login: "User not found. Please check your username or email." }
+          : error.message === "Incorrect password"
+            ? { password: "Incorrect password. Please try again." }
+            : { general: "An authentication error occurred." };
+
+      return json({ errors: errorMessage }, { status: 401 });
     }
-    return json({ error: "Something went wrong" }, { status: 500 });
+
+    return json(
+      {
+        errors: { general: "An unexpected error occurred. Please try again." },
+      },
+      { status: 500 },
+    );
   }
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const user = await authenticator.isAuthenticated(request, {
+  return await authenticator.isAuthenticated(request, {
     successRedirect: "/",
   });
-  return user;
 }
 
 export default function Login() {
   const actionData = useActionData<typeof action>();
 
-  console.log("Action data:", actionData);
+  // console.log("Action data:", actionData);
 
   const [formData, setFormData] = useState({
     login: "",
@@ -68,7 +82,7 @@ export default function Login() {
             id="login"
             value={formData.login}
             onChange={(e) => handleInputChange(e, "login")}
-            className={`${actionData?.error ? "border-red-500" : ""}`}
+            className={`${actionData?.errors?.login ? "border-red-500" : ""}`}
             required
           />
           <FloatingLabelInput
@@ -78,12 +92,20 @@ export default function Login() {
             type="password"
             value={formData.password}
             onChange={(e) => handleInputChange(e, "password")}
-            className={`${actionData?.error ? "border-red-500" : ""}`}
+            className={`${actionData?.errors?.password ? "border-red-500" : ""}`}
             required
           />
 
-          {actionData?.error && (
-            <p className="text-sm text-red-500">{actionData.error}</p>
+          {actionData?.errors?.login && (
+            <p className="text-sm text-red-500">{actionData.errors.login}</p>
+          )}
+
+          {actionData?.errors?.password && (
+            <p className="text-sm text-red-500">{actionData.errors.password}</p>
+          )}
+
+          {actionData?.errors?.general && (
+            <p className="text-sm text-red-500">{actionData.errors.general}</p>
           )}
 
           <div className="mt-5 flex w-[170px] flex-col items-center gap-10">

@@ -6,6 +6,7 @@ export const FloatingLabelInput = ({
   id,
   name,
   value,
+  defaultValue,
   onChange = () => {},
   className,
   required = false,
@@ -15,6 +16,7 @@ export const FloatingLabelInput = ({
   id?: string;
   name?: string;
   value?: string;
+  defaultValue?: string;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   className?: string;
   required?: boolean;
@@ -27,6 +29,7 @@ export const FloatingLabelInput = ({
         name={name}
         onChange={onChange}
         value={value}
+        defaultValue={defaultValue}
         required={required}
         className={twMerge(
           "peer block w-full appearance-none rounded-2xl border-2 border-gray-300 border-transparent bg-black/5 px-4 pb-2.5 pt-5 text-gray-900 transition duration-300 ease-in-out hover:bg-black/10 focus:border-blue-600 focus:outline-none focus:ring-0",
