@@ -10,7 +10,7 @@ export function badRequest<TActionData>(data: TActionData, status = 400) {
   return json<TActionData>(data, { status });
 }
 
-export type ActionData = {
+export type ActionDataCreateAccount = {
   error?: {
     formError?: string[];
     fieldErrors?: {
@@ -61,7 +61,7 @@ export async function action({ request }: ActionFunctionArgs) {
     typeof password !== "string" ||
     typeof confirmPassword !== "string"
   ) {
-    return badRequest<ActionData>({
+    return badRequest<ActionDataCreateAccount>({
       error: { formError: ["Form not submitted correctly."] },
     });
   }
@@ -95,7 +95,10 @@ export async function action({ request }: ActionFunctionArgs) {
   };
 
   if (Object.values(fieldErrors).some(Boolean)) {
-    return badRequest<ActionData>({ error: { fieldErrors }, fields });
+    return badRequest<ActionDataCreateAccount>({
+      error: { fieldErrors },
+      fields,
+    });
   }
 
   try {
@@ -109,7 +112,7 @@ export async function action({ request }: ActionFunctionArgs) {
     });
     return redirect("/login");
   } catch (error) {
-    return badRequest<ActionData>({
+    return badRequest<ActionDataCreateAccount>({
       error: { formError: ["An unexpected error occurred. Please try again."] },
       fields,
     });
@@ -117,7 +120,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function CreateAccount() {
-  const { error, fields } = useActionData<ActionData>() ?? {};
+  const { error, fields } = useActionData<ActionDataCreateAccount>() ?? {};
 
   return (
     <main className="flex flex-col items-center">
@@ -126,13 +129,11 @@ export default function CreateAccount() {
 
         <CreateAccountForm error={error} fields={fields} />
 
-        <div className="mt-5 flex w-[170px] flex-col items-center gap-10">
-          <div className="flex w-full flex-col items-center gap-2.5">
-            <p className="text-center">Already have an account?</p>
-            <CustomLink url="/login" variant="secondary" className="w-[170px]">
-              Login
-            </CustomLink>
-          </div>
+        <div className="mt-5 flex w-[170px] flex-col items-center gap-2.5">
+          <p className="text-center">Already have an account?</p>
+          <CustomLink url="/login" variant="secondary" className="w-full">
+            Login
+          </CustomLink>
         </div>
       </div>
     </main>

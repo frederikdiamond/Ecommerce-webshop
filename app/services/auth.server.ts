@@ -1,14 +1,21 @@
 import { Authenticator, AuthorizationError } from "remix-auth";
-import { sessionStorage } from "~/services/session.server";
+import {
+  getSession,
+  commitSession,
+  destroySession,
+} from "~/services/session.server";
 import { FormStrategy } from "remix-auth-form";
 import * as argon2 from "argon2";
 import { db } from "~/db/index.server";
 import { users } from "~/db/schema.server";
 import { eq } from "drizzle-orm";
 import { User } from "~/types/UserTypes";
-import { json } from "@remix-run/node";
 
-const authenticator = new Authenticator<User>(sessionStorage);
+const authenticator = new Authenticator<User>({
+  getSession,
+  commitSession,
+  destroySession,
+});
 
 const formStrategy = new FormStrategy(async ({ form }) => {
   const login = form.get("login") as string;
@@ -33,8 +40,6 @@ const formStrategy = new FormStrategy(async ({ form }) => {
     console.error("User not found for login:", login);
     throw new AuthorizationError("User not found");
   }
-
-  // invariant(typeof user !== "undefined", "User not found");
 
   const isPasswordValid = await argon2.verify(user.passwordHash, password);
 

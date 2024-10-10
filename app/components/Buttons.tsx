@@ -42,11 +42,13 @@ export const CustomButton = ({
   className,
   variant = "primary",
   type = "button",
+  disabled = false,
   children,
 }: {
   className?: string;
   variant?: "primary" | "secondary";
   type?: "button" | "submit" | "reset";
+  disabled?: boolean;
   children: React.ReactNode;
 }) => {
   const baseStyles = "px-4 py-2 rounded-md";
@@ -64,7 +66,7 @@ export const CustomButton = ({
   );
 
   return (
-    <button type={type} className={mergedClassName}>
+    <button type={type} disabled={disabled} className={mergedClassName}>
       {children}
     </button>
   );

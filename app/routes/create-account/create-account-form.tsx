@@ -1,22 +1,47 @@
 import { Form } from "@remix-run/react";
-import { ActionData } from "./route";
+import { ActionDataCreateAccount } from "./route";
 import { FloatingLabelInput } from "~/components/TextInput";
 import { CustomButton } from "~/components/Buttons";
+import { useEffect, useState } from "react";
 
 export function CreateAccountForm({
   error,
   fields,
 }: {
-  error: ActionData["error"];
-  fields: ActionData["fields"];
+  error: ActionDataCreateAccount["error"];
+  fields: ActionDataCreateAccount["fields"];
 }) {
+  const [formData, setFormData] = useState({
+    firstName: fields?.firstName || "",
+    lastName: fields?.lastName || "",
+    username: fields?.username || "",
+    email: fields?.email || "",
+    password: fields?.password || "",
+    confirmPassword: fields?.confirmPassword || "",
+  });
+
+  const [isFormValid, setIsFormValid] = useState(false);
+
+  useEffect(() => {
+    const allFieldsFilled = Object.values(formData).every(
+      (value) => value.trim() !== "",
+    );
+    setIsFormValid(allFieldsFilled);
+  }, [formData]);
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    setFormData((prevFormData) => ({ ...prevFormData, [name]: value }));
+  };
+
   return (
     <Form method="post" className="flex w-full flex-col gap-4">
       <FloatingLabelInput
         label="First Name"
         name="firstName"
         id="firstName"
-        defaultValue={fields?.firstName}
+        value={formData.firstName}
+        onChange={handleInputChange}
         className={`${error?.fieldErrors?.firstName ? "border-red-500" : ""}`}
         required
       />
@@ -25,7 +50,8 @@ export function CreateAccountForm({
         label="Last Name"
         name="lastName"
         id="lastName"
-        defaultValue={fields?.lastName}
+        value={formData.lastName}
+        onChange={handleInputChange}
         className={`${error?.fieldErrors?.lastName ? "border-red-500" : ""}`}
         required
       />
@@ -34,7 +60,8 @@ export function CreateAccountForm({
         label="Username"
         name="username"
         id="username"
-        defaultValue={fields?.username}
+        value={formData.username}
+        onChange={handleInputChange}
         className={`${error?.fieldErrors?.username ? "border-red-500" : ""}`}
         required
       />
@@ -43,7 +70,8 @@ export function CreateAccountForm({
         label="Email"
         name="email"
         id="email"
-        defaultValue={fields?.email}
+        value={formData.email}
+        onChange={handleInputChange}
         className={`${error?.fieldErrors?.email ? "border-red-500" : ""}`}
         required
       />
@@ -53,7 +81,8 @@ export function CreateAccountForm({
         name="password"
         id="password"
         type="password"
-        defaultValue={fields?.password}
+        value={formData.password}
+        onChange={handleInputChange}
         className={`${error?.fieldErrors?.password ? "border-red-500" : ""}`}
         required
       />
@@ -63,7 +92,8 @@ export function CreateAccountForm({
         name="confirmPassword"
         id="confirmPassword"
         type="password"
-        defaultValue={fields?.confirmPassword}
+        value={formData.confirmPassword}
+        onChange={handleInputChange}
         className={`${error?.fieldErrors?.confirmPassword ? "border-red-500" : ""}`}
         required
       />
@@ -96,7 +126,10 @@ export function CreateAccountForm({
         )}
       </div>
 
-      <CustomButton type="submit" className="mx-auto w-[170px]">
+      <CustomButton
+        type="submit"
+        className={`mx-auto w-[170px] ${!isFormValid || error ? "cursor-not-allowed opacity-50" : ""}`}
+      >
         Create Account
       </CustomButton>
     </Form>
