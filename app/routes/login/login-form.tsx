@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 export default function LoginForm({
   error,
+  fields,
 }: {
   error?: {
     formError?: string[];
@@ -13,14 +14,16 @@ export default function LoginForm({
       password?: string[];
     };
   };
+  fields?: {
+    login: string;
+    password: string;
+  };
 }) {
   const [formData, setFormData] = useState({
-    login: "",
-    password: "",
+    login: fields?.login || "",
+    password: fields?.password || "",
   });
 
-  // const [isFormValid, setIsFormValid] = useState(false);
-  // const [isButtonDisabled, setIsButtonDisabled] = useState(!!error);
   const [hasEdited, setHasEdited] = useState(false);
 
   const isFormValid = useMemo(() => {
@@ -28,33 +31,13 @@ export default function LoginForm({
   }, [formData]);
 
   const isButtonDisabled = useMemo(() => {
-    // Button should be disabled if:
-    // 1. Form is not valid (empty fields) OR
-    // 2. There are errors AND user hasn't edited the form since the error
     return !isFormValid || (!!error && !hasEdited);
   }, [isFormValid, error, hasEdited]);
-
-  // useEffect(() => {
-  //   const allFieldsFilled = Object.values(formData).every(
-  //     (value) => value.trim() !== "",
-  //   );
-  //   setIsFormValid(allFieldsFilled);
-
-  //   if (allFieldsFilled) {
-  //     setIsButtonDisabled(false);
-  //   }
-  // }, [formData]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setHasEdited(true);
-
-    // setFormData((prevFormData) => ({ ...prevFormData, [name]: value }));
-
-    // if (error) {
-    //   setIsButtonDisabled(false);
-    // }
   };
 
   useEffect(() => {
@@ -72,6 +55,9 @@ export default function LoginForm({
     ));
   };
 
+  console.log("Error state:", error);
+  console.log("Error state:", error?.fieldErrors?.password);
+
   return (
     <Form method="post" className="flex w-96 flex-col items-center gap-5">
       <FloatingLabelInput
@@ -80,7 +66,7 @@ export default function LoginForm({
         id="login"
         value={formData.login}
         onChange={handleInputChange}
-        className={`${error?.fieldErrors?.login && error.fieldErrors.login.length > 0 ? "border-red-500" : ""}`}
+        className={`${error?.fieldErrors?.login ? "border-red-500" : ""}`}
         required
       />
       <FloatingLabelInput
@@ -103,9 +89,7 @@ export default function LoginForm({
       <CustomButton
         type="submit"
         disabled={isButtonDisabled}
-        // disabled={!isFormValid || isButtonDisabled}
         className={`mx-auto w-[170px] ${isButtonDisabled ? "cursor-not-allowed opacity-50" : ""}`}
-        // className={`mx-auto w-[170px] ${!isFormValid || isButtonDisabled ? "cursor-not-allowed opacity-50" : ""}`}
       >
         Login
       </CustomButton>

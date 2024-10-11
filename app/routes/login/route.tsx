@@ -33,8 +33,29 @@ export async function action({ request }: ActionFunctionArgs) {
   } catch (error) {
     if (error instanceof Response) return error;
     if (error instanceof AuthorizationError) {
+      const errorMessage = String(error.message).toLowerCase();
+
+      const fieldErrors = {
+        login: errorMessage.includes("user not found")
+          ? ["User not found"]
+          : errorMessage.includes("username or email")
+            ? ["Username or email is required"]
+            : undefined,
+        password: errorMessage.includes("incorrect password")
+          ? ["Incorrect password"]
+          : undefined,
+      };
+
+      const formError =
+        !fieldErrors.login && !fieldErrors.password
+          ? [error.message]
+          : undefined;
+
       return badRequest<ActionDataLogin>({
-        error: { formError: [String(error.message)] },
+        error: {
+          formError,
+          fieldErrors,
+        },
       });
     }
 
@@ -62,6 +83,7 @@ export default function Login() {
   const actionData = useActionData<typeof action>();
 
   const error = actionData?.error ?? loaderData?.error;
+  const fields = actionData?.fields;
 
   console.log("Action Data:", actionData);
   console.log("Loader Data:", loaderData);
@@ -71,7 +93,7 @@ export default function Login() {
       <div className="mt-52 flex flex-col items-center gap-10">
         <h1 className="text-center text-2xl font-semibold">Login</h1>
 
-        <LoginForm error={error} />
+        <LoginForm error={error} fields={fields} />
 
         <div className="mt-5 flex w-[170px] flex-col items-center gap-2.5">
           <p className="text-center">Don&apos;t already have an account?</p>
