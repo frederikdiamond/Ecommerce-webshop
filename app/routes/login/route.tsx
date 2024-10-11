@@ -6,7 +6,6 @@ import { useActionData, useLoaderData, json } from "@remix-run/react";
 import { authenticator } from "~/services/auth.server";
 import { CustomLink } from "~/components/Buttons";
 import LoginForm from "./login-form";
-import { getSession } from "~/services/session.server";
 import { AuthorizationError } from "remix-auth";
 
 export type ActionDataLogin = {
@@ -32,6 +31,7 @@ export async function action({ request }: ActionFunctionArgs) {
       throwOnError: true,
     });
   } catch (error) {
+    if (error instanceof Response) return error;
     if (error instanceof AuthorizationError) {
       return badRequest<ActionDataLogin>({
         error: { formError: [String(error.message)] },
@@ -51,31 +51,9 @@ type LoaderData = {
   };
 };
 
-// type LoaderError = { message: string } | null;
-
-// export async function loader({ request }: LoaderFunctionArgs) {
-//   await authenticator.isAuthenticated(request, {
-//     successRedirect: "/",
-//   });
-//   let session = await getSession(request.headers.get("cookie"));
-//   const error = session.get(authenticator.sessionErrorKey) as LoaderError;
-//   return json({ error });
-// }
-
 export async function loader({ request }: LoaderFunctionArgs) {
-  await authenticator.isAuthenticated(request, {
+  return await authenticator.isAuthenticated(request, {
     successRedirect: "/",
-  });
-
-  const session = await getSession(request.headers.get("cookie"));
-  const error = session.get(authenticator.sessionErrorKey) as
-    | string
-    | undefined;
-
-  const errorMessage = typeof error === "object" ? null : String(error);
-
-  return json<LoaderData>({
-    error: errorMessage ? { formError: [errorMessage] } : undefined,
   });
 }
 

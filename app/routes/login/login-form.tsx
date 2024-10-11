@@ -1,11 +1,10 @@
 import { Form } from "@remix-run/react";
 import { CustomButton } from "~/components/Buttons";
 import { FloatingLabelInput } from "~/components/TextInput";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function LoginForm({
   error,
-  //   fields,
 }: {
   error?: {
     formError?: string[];
@@ -20,19 +19,49 @@ export default function LoginForm({
     password: "",
   });
 
-  const [isFormValid, setIsFormValid] = useState(false);
+  // const [isFormValid, setIsFormValid] = useState(false);
+  // const [isButtonDisabled, setIsButtonDisabled] = useState(!!error);
+  const [hasEdited, setHasEdited] = useState(false);
 
-  useEffect(() => {
-    const allFieldsFilled = Object.values(formData).every(
-      (value) => value.trim() !== "",
-    );
-    setIsFormValid(allFieldsFilled);
+  const isFormValid = useMemo(() => {
+    return Object.values(formData).every((value) => value.trim() !== "");
   }, [formData]);
+
+  const isButtonDisabled = useMemo(() => {
+    // Button should be disabled if:
+    // 1. Form is not valid (empty fields) OR
+    // 2. There are errors AND user hasn't edited the form since the error
+    return !isFormValid || (!!error && !hasEdited);
+  }, [isFormValid, error, hasEdited]);
+
+  // useEffect(() => {
+  //   const allFieldsFilled = Object.values(formData).every(
+  //     (value) => value.trim() !== "",
+  //   );
+  //   setIsFormValid(allFieldsFilled);
+
+  //   if (allFieldsFilled) {
+  //     setIsButtonDisabled(false);
+  //   }
+  // }, [formData]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
-    setFormData((prevFormData) => ({ ...prevFormData, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setHasEdited(true);
+
+    // setFormData((prevFormData) => ({ ...prevFormData, [name]: value }));
+
+    // if (error) {
+    //   setIsButtonDisabled(false);
+    // }
   };
+
+  useEffect(() => {
+    if (error) {
+      setHasEdited(false);
+    }
+  }, [error]);
 
   const renderErrorMessage = (errorMessages?: string[] | undefined) => {
     if (!errorMessages || errorMessages.length === 0) return null;
@@ -65,18 +94,6 @@ export default function LoginForm({
         required
       />
 
-      {/* {error?.formError && (
-        <p className="text-sm text-red-500">{error.formError}</p>
-      )}
-
-      {error?.fieldErrors?.login && (
-        <p className="text-sm text-red-500">{error.fieldErrors.login}</p>
-      )}
-
-      {error?.fieldErrors?.password && (
-        <p className="text-sm text-red-500">{error.fieldErrors.password}</p>
-      )} */}
-
       {renderErrorMessage(error?.fieldErrors?.login)}
 
       {renderErrorMessage(error?.fieldErrors?.password)}
@@ -85,8 +102,10 @@ export default function LoginForm({
 
       <CustomButton
         type="submit"
-        disabled={!isFormValid}
-        className={`mx-auto w-[170px] ${!isFormValid || error ? "cursor-not-allowed opacity-50" : ""}`}
+        disabled={isButtonDisabled}
+        // disabled={!isFormValid || isButtonDisabled}
+        className={`mx-auto w-[170px] ${isButtonDisabled ? "cursor-not-allowed opacity-50" : ""}`}
+        // className={`mx-auto w-[170px] ${!isFormValid || isButtonDisabled ? "cursor-not-allowed opacity-50" : ""}`}
       >
         Login
       </CustomButton>
