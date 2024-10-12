@@ -102,8 +102,9 @@ export const productOptions = pgTable(
     configurationId: integer("configuration_id")
       .notNull()
       .references(() => productConfigurations.id),
-    optionLabel: varchar("option_label", { length: 255 }).notNull(), // E.g., "16GB", "1TB SSD"
+    optionLabel: varchar("option_label", { length: 255 }).notNull(), // E.g., "16GB", "1TB"
     priceModifier: integer("price_modifier").notNull(), // Price adjustment for this option in cents
+    isDefault: boolean("is_default").default(false),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

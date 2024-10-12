@@ -1,14 +1,18 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { LoaderFunction, json } from "@remix-run/node";
-import { useLoaderData, useParams } from "@remix-run/react";
+import { useLoaderData, useNavigate, useParams } from "@remix-run/react";
 import { eq } from "drizzle-orm";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import CustomerReviewSection from "~/components/CustomerReviewSection";
 import { FullscreenImage } from "~/components/FullscreenImage";
 import { ArrowIcom } from "~/components/Icons";
 import { db } from "~/db/index.server";
-import { products } from "~/db/schema.server";
+import {
+  productConfigurations,
+  productOptions,
+  products,
+} from "~/db/schema.server";
 import { formatPrice } from "~/helpers/formatPrice";
 import { Product } from "~/types/ProductTypes";
 
@@ -20,6 +24,7 @@ type ConfigOption = {
 type ConfigCategory = {
   name: string;
   options: ConfigOption[];
+  defaultOption?: ConfigOption;
 };
 
 export const loader: LoaderFunction = async ({ params }) => {
@@ -39,8 +44,47 @@ export const loader: LoaderFunction = async ({ params }) => {
       throw new Response("Product Not Found", { status: 404 });
     }
 
-    const product: Product = productResult[0];
-    return json({ product });
+    const product = productResult[0];
+
+    const configResults = await db
+      .select({
+        category: productConfigurations.category,
+        optionLabel: productOptions.optionLabel,
+        priceModifier: productOptions.priceModifier,
+        isDefault: productOptions.isDefault,
+      })
+      .from(productConfigurations)
+      .leftJoin(
+        productOptions,
+        eq(productOptions.configurationId, productConfigurations.id),
+      )
+      .where(eq(productConfigurations.productId, product.id));
+
+    const configurations = configResults.reduce(
+      (acc: ConfigCategory[], row) => {
+        let category = acc.find((c) => c.name === row.category);
+        if (!category) {
+          category = { name: row.category, options: [], defaultOption: null };
+          acc.push(category);
+        }
+        const option = { label: row.optionLabel, price: row.priceModifier };
+        category.options.push(option);
+        if (row.isDefault) {
+          category.defaultOption = option;
+        }
+
+        // category.options.push({
+        //   label: row.optionLabel,
+        //   price: row.priceModifier,
+        // });
+        return acc;
+      },
+      [],
+    );
+    return json({ product, configurations });
+
+    // const product: Product = productResult[0];
+    // return json({ product });
   } catch (error) {
     console.error("Error fetching product:", error);
     throw new Response("Server Error", { status: 500 });
@@ -48,8 +92,13 @@ export const loader: LoaderFunction = async ({ params }) => {
 };
 
 export default function ProductPage() {
-  const { product } = useLoaderData<{ product: Product }>();
+  // const { product } = useLoaderData<{ product: Product }>();
+  const { product, configurations } = useLoaderData<{
+    product: Product;
+    configurations: ConfigCategory[];
+  }>();
   const params = useParams();
+  const navigate = useNavigate();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
@@ -57,7 +106,34 @@ export default function ProductPage() {
   const [showEditConfiguration, setShowEditConfiguration] = useState(false);
   const [selectedConfigurations, setSelectedConfigurations] = useState<
     Record<string, ConfigOption>
-  >({});
+  >(() => {
+    const defaults: Record<string, ConfigOption> = {};
+    configurations.forEach((category) => {
+      if (category.defaultOption) {
+        defaults[category.name] = category.defaultOption;
+      }
+    });
+    return defaults;
+  });
+
+  const buildProductUrl = () => {
+    const url = `/product/${product.slug}`;
+    const configStrings = Object.entries(selectedConfigurations)
+      .map(([category, option]) => {
+        const formattedCategory = category.toLowerCase().replace(/\s+/g, "-");
+        const formattedOption = option.label.toLowerCase().replace(/\s+/g, "-");
+        return `${formattedCategory}-${formattedOption}`;
+      })
+      .join("-");
+    return `${url}/${configStrings}`;
+  };
+
+  useEffect(() => {
+    if (Object.keys(selectedConfigurations).length > 0) {
+      const newUrl = buildProductUrl();
+      navigate(newUrl, { replace: true });
+    }
+  }, [selectedConfigurations]);
 
   if (!product) {
     return <div>Product not found: {params.slug}</div>;
@@ -187,28 +263,30 @@ export default function ProductPage() {
             </button>
             {showEditConfiguration && (
               <div className="mt-4 space-y-4">
-                {product.configurations.map((category) => (
+                {configurations.map((category) => (
                   <div key={category.name}>
                     <p className="font-semibold">{category.name}</p>
                     <div className="mt-2 flex flex-wrap gap-2">
-                      {category.options.map((option) => (
-                        <button
-                          key={option.label}
-                          onClick={() =>
-                            handleConfigurationChange(category.name, option)
-                          }
-                          className={`rounded-md px-3 py-1 text-sm transition duration-200 ${
-                            selectedConfigurations[category.name]?.label ===
-                            option.label
-                              ? "bg-blue-500 text-white active:bg-blue-600"
-                              : "bg-gray-200 text-gray-800 hover:bg-gray-300 active:bg-gray-400"
-                          }`}
-                        >
-                          {option.label}
-                          {option.price > 0 &&
-                            ` (+${formatPrice(option.price)})`}
-                        </button>
-                      ))}
+                      {category.options
+                        .sort((a, b) => a.price - b.price)
+                        .map((option) => (
+                          <button
+                            key={option.label}
+                            onClick={() =>
+                              handleConfigurationChange(category.name, option)
+                            }
+                            className={`rounded-md px-3 py-1 text-sm transition duration-200 ${
+                              selectedConfigurations[category.name]?.label ===
+                              option.label
+                                ? "bg-blue-500 text-white active:bg-blue-600"
+                                : "bg-gray-200 text-gray-800 hover:bg-gray-300 active:bg-gray-400"
+                            }`}
+                          >
+                            {option.label}
+                            {option.price > 0 &&
+                              ` (+${formatPrice(option.price)})`}
+                          </button>
+                        ))}
                     </div>
                   </div>
                 ))}
