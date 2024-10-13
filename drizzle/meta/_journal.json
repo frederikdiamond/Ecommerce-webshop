@@ -155,6 +155,34 @@
       "when": 1728760121548,
       "tag": "0021_skinny_lethal_legion",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1728765335955,
+      "tag": "0022_serious_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1728766853018,
+      "tag": "0023_fluffy_maggott",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1728767966704,
+      "tag": "0024_spicy_drax",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1728768170959,
+      "tag": "0025_broken_susan_delgado",
+      "breakpoints": true
     }
   ]
 }

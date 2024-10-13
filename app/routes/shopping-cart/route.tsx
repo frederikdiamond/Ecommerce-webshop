@@ -1,43 +1,143 @@
-import { useState } from "react";
+import { json, type LoaderFunctionArgs } from "@remix-run/node";
+import { useEffect, useState } from "react";
 import ShoppingCartItem from "./ShoppingCartItem";
 import { Product } from "~/types/ProductTypes";
 import { formatPrice } from "~/helpers/formatPrice";
+import {
+  productOptions,
+  products,
+  shoppingCartItemConfigurations,
+  shoppingCartItems,
+} from "~/db/schema.server";
+import { eq } from "drizzle-orm";
+import { db } from "~/db/index.server";
+import { useLoaderData } from "@remix-run/react";
+import { authenticator } from "~/services/auth.server";
 // import { CloseIcon, HeartIcon, MinusIcon, PlusIcon } from "~/components/Icons";
+
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const user = await authenticator.isAuthenticated(request);
+
+  if (!user) {
+    return json({ cart: null });
+  }
+
+  try {
+    const cartItems = await db
+      .select({
+        cartItemId: shoppingCartItems.id,
+        productId: shoppingCartItems.productId,
+        name: products.name,
+        quantity: shoppingCartItems.quantity,
+        price: shoppingCartItems.price,
+        configLabel: productOptions.optionLabel,
+        configPriceModifier: productOptions.priceModifier,
+      })
+      .from(shoppingCartItems)
+      .leftJoin(products, eq(shoppingCartItems.productId, products.id))
+      .leftJoin(
+        shoppingCartItemConfigurations,
+        eq(shoppingCartItems.id, shoppingCartItemConfigurations.cartItemId),
+      )
+      .leftJoin(
+        productOptions,
+        eq(shoppingCartItemConfigurations.configurationId, productOptions.id),
+      )
+      .where(eq(shoppingCartItems.userId, user.id));
+
+    console.log("Fetched cart items: ", cartItems);
+
+    const groupedCart = cartItems.reduce((acc: any, row: any) => {
+      const {
+        cartItemId,
+        productId,
+        name,
+        quantity,
+        price,
+        configLabel,
+        configPriceModifier,
+      } = row;
+
+      if (!acc[cartItemId]) {
+        acc[cartItemId] = {
+          cartItemId,
+          productId,
+          name,
+          quantity,
+          price,
+          configurations: [],
+        };
+      }
+
+      acc[cartItemId].configurations.push({
+        configLabel,
+        configPriceModifier,
+      });
+
+      return acc;
+    }, {});
+
+    const cart = Object.values(groupedCart);
+
+    return json({ cart });
+  } catch (error) {
+    console.error("Error fetching shopping cart: ", error);
+    return json({ cart: null, error: "Error fetching shopping cart" });
+  }
+};
+
+export interface CartItem {
+  cartItemId: number;
+  product: Product;
+  quantity: number;
+  price: number;
+  configurations: {
+    configLabel: string;
+    configPriceModifier: number;
+  }[];
+}
 
 export default function ShoppingCart({
   userAddress,
 }: {
   userAddress: string | null;
 }) {
-  const [items, setItems] = useState<Product[]>([
-    {
-      id: 1,
-      name: 'MacBook Pro 16"',
-      specs: ["Apple M3 Max", "36GB memory", "512GB storage"],
-      price: 3299.0,
-      quantity: 1,
-    },
-    {
-      id: 2,
-      name: 'MacBook Pro 14"',
-      specs: ["Apple M3 Pro", "18GB memory", "512GB storage"],
-      price: 2399.0,
-      quantity: 2,
-    },
-  ]);
+  const { cart } = useLoaderData<{ cart: CartItem[] }>();
+  const [items, setItems] = useState<CartItem[]>(cart || []);
+  const [isGuest, setIsGuest] = useState<boolean>(false);
 
-  const shippingCost = 50.0;
+  useEffect(() => {
+    if (cart) {
+      setItems(cart);
+    } else {
+      const storedCart = localStorage.getItem("shoppingCart");
+      if (storedCart) {
+        setItems(JSON.parse(storedCart));
+        setIsGuest(true);
+      }
+    }
+  }, [cart]);
 
   const handleQuantityChange = (id: number, newQuantity: number): void => {
-    setItems(
-      items.map((item) =>
-        item.id === id ? { ...item, quantity: Math.max(1, newQuantity) } : item,
-      ),
+    const updatedItems = items.map((item) =>
+      item.cartItemId === id
+        ? { ...item, quantity: Math.max(1, newQuantity) }
+        : item,
     );
+    setItems(updatedItems);
+
+    if (isGuest) {
+      localStorage.setItem("shoppingCart", JSON.stringify(updatedItems));
+    }
   };
 
   const handleRemoveItem = (id: number): void => {
-    setItems(items.filter((item) => item.id !== id));
+    const updatedItems = items.filter((item) => item.cartItemId !== id);
+    setItems(updatedItems);
+
+    if (isGuest) {
+      localStorage.setItem("shoppingCart", JSON.stringify(updatedItems));
+    }
   };
 
   const calculateSubtotal = (): number => {
@@ -46,12 +146,13 @@ export default function ShoppingCart({
 
   const calculateGrandTotal = (): number => {
     const subtotal = calculateSubtotal();
+    const shippingCost = 5000; // Fixed for testing purposes
     return userAddress ? subtotal + shippingCost : subtotal;
   };
 
-  userAddress = "Hello";
-
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  const shippingCost = 5000; // Fixed for testing purposes
 
   return (
     <main className="mt-32 flex flex-col items-center">
@@ -72,7 +173,7 @@ export default function ShoppingCart({
               <div className="mt-2.5 border border-black/10" />
               {items.map((item) => (
                 <ShoppingCartItem
-                  key={item.id}
+                  key={item.cartItemId}
                   item={item}
                   onQuantityChange={handleQuantityChange}
                   onRemove={handleRemoveItem}

@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { LoaderFunction, json } from "@remix-run/node";
-import { useLoaderData, useNavigate, useParams } from "@remix-run/react";
+import { useLoaderData, useSearchParams } from "@remix-run/react";
 import { eq } from "drizzle-orm";
 import { useCallback, useEffect, useState } from "react";
 import CustomerReviewSection from "~/components/CustomerReviewSection";
@@ -27,8 +27,10 @@ type ConfigCategory = {
   defaultOption?: ConfigOption;
 };
 
-export const loader: LoaderFunction = async ({ params }) => {
+export const loader: LoaderFunction = async ({ params, request }) => {
   const { slug } = params;
+  const url = new URL(request.url);
+  const searchParams = url.searchParams;
 
   if (!slug) {
     throw new Response("Bad Request", { status: 400 });
@@ -72,19 +74,28 @@ export const loader: LoaderFunction = async ({ params }) => {
         if (row.isDefault) {
           category.defaultOption = option;
         }
-
-        // category.options.push({
-        //   label: row.optionLabel,
-        //   price: row.priceModifier,
-        // });
         return acc;
       },
       [],
     );
-    return json({ product, configurations });
 
-    // const product: Product = productResult[0];
-    // return json({ product });
+    const initialSelectedConfigurations: Record<string, ConfigOption> = {};
+    configurations.forEach((category) => {
+      const paramValue = searchParams.get(category.name.toLowerCase());
+      const selectedOption =
+        category.options.find(
+          (o) => o.label.toLowerCase() === paramValue?.toLowerCase(),
+        ) || category.defaultOption;
+      if (selectedOption) {
+        initialSelectedConfigurations[category.name] = selectedOption;
+      }
+    });
+
+    return json({
+      product,
+      configurations,
+      initialSelectedConfigurations,
+    });
   } catch (error) {
     console.error("Error fetching product:", error);
     throw new Response("Server Error", { status: 500 });
@@ -92,52 +103,53 @@ export const loader: LoaderFunction = async ({ params }) => {
 };
 
 export default function ProductPage() {
-  // const { product } = useLoaderData<{ product: Product }>();
-  const { product, configurations } = useLoaderData<{
-    product: Product;
-    configurations: ConfigCategory[];
-  }>();
-  const params = useParams();
-  const navigate = useNavigate();
+  const { product, configurations, initialSelectedConfigurations } =
+    useLoaderData<{
+      product: Product;
+      configurations: ConfigCategory[];
+      initialSelectedConfigurations: Record<string, ConfigOption>;
+    }>();
+  // const params = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showEditConfiguration, setShowEditConfiguration] = useState(false);
-  const [selectedConfigurations, setSelectedConfigurations] = useState<
-    Record<string, ConfigOption>
-  >(() => {
-    const defaults: Record<string, ConfigOption> = {};
-    configurations.forEach((category) => {
-      if (category.defaultOption) {
-        defaults[category.name] = category.defaultOption;
-      }
-    });
-    return defaults;
-  });
 
-  const buildProductUrl = () => {
-    const url = `/product/${product.slug}`;
-    const configStrings = Object.entries(selectedConfigurations)
-      .map(([category, option]) => {
-        const formattedCategory = category.toLowerCase().replace(/\s+/g, "-");
-        const formattedOption = option.label.toLowerCase().replace(/\s+/g, "-");
-        return `${formattedCategory}-${formattedOption}`;
-      })
-      .join("-");
-    return `${url}/${configStrings}`;
-  };
+  const [selectedConfigurations, setSelectedConfigurations] = useState(
+    initialSelectedConfigurations,
+  );
+
+  const handleCloseFullscreen = useCallback(() => {
+    setIsFullscreen(false);
+  }, []);
+
+  const updateUrl = useCallback(() => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    Object.entries(selectedConfigurations).forEach(([category, option]) => {
+      newSearchParams.set(category.toLowerCase(), option.label.toLowerCase());
+    });
+    setSearchParams(newSearchParams, { replace: true });
+  }, [selectedConfigurations, setSearchParams, searchParams]);
 
   useEffect(() => {
-    if (Object.keys(selectedConfigurations).length > 0) {
-      const newUrl = buildProductUrl();
-      navigate(newUrl, { replace: true });
-    }
-  }, [selectedConfigurations]);
+    updateUrl();
+  }, [selectedConfigurations, updateUrl]);
 
-  if (!product) {
-    return <div>Product not found: {params.slug}</div>;
-  }
+  const handleConfigurationChange = (
+    category: string,
+    option: ConfigOption,
+  ) => {
+    setSelectedConfigurations((prev) => ({
+      ...prev,
+      [category]: option,
+    }));
+  };
+
+  // if (!product) {
+  //   return <div>Product not found: {params.slug}</div>;
+  // }
 
   const images = product.images || [product.images];
 
@@ -161,22 +173,8 @@ export default function ProductPage() {
     setIsFullscreen(true);
   };
 
-  const handleCloseFullscreen = useCallback(() => {
-    setIsFullscreen(false);
-  }, []);
-
   const toggleConfigurationView = () => {
     setShowEditConfiguration(!showEditConfiguration);
-  };
-
-  const handleConfigurationChange = (
-    category: string,
-    option: ConfigOption,
-  ) => {
-    setSelectedConfigurations((prev) => ({
-      ...prev,
-      [category]: option,
-    }));
   };
 
   const calculateTotalPrice = () => {
@@ -196,7 +194,7 @@ export default function ProductPage() {
               onClick={handleImageClick}
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
-              className="relative h-96 cursor-pointer"
+              className="relative h-96 cursor-pointer rounded-2xl"
             >
               <img
                 src={images[currentIndex]}
@@ -271,7 +269,7 @@ export default function ProductPage() {
                         .sort((a, b) => a.price - b.price)
                         .map((option) => (
                           <button
-                            key={option.label}
+                            key={`${category.name}-${option.label}`}
                             onClick={() =>
                               handleConfigurationChange(category.name, option)
                             }
