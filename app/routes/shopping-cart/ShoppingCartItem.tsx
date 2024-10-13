@@ -1,7 +1,7 @@
 import { Link } from "@remix-run/react";
 import { MinusIcon, PlusIcon, HeartIcon, TrashIcon } from "~/components/Icons";
 import { formatPrice } from "~/helpers/formatPrice";
-import { CartItem } from "./route";
+import { CartItem } from "~/types/CartItemTypes";
 
 export default function ShoppingCartItem({
   item,
@@ -12,16 +12,34 @@ export default function ShoppingCartItem({
   onQuantityChange: (id: number, newQuantity: number) => void;
   onRemove: (id: number) => void;
 }) {
+  const productName = item.product?.name || "Unnamed Product";
+  const baseSlug = item.product?.slug;
+
+  const constructProductUrl = () => {
+    if (!baseSlug) return "";
+
+    const configParams = item.configurations
+      .map(
+        (config) =>
+          `${config.category.toLowerCase()}=${encodeURIComponent(config.optionLabel)}`,
+      )
+      .join("&");
+
+    return `/product/${baseSlug}${configParams ? `?${configParams}` : ""}`;
+  };
+
+  const productUrl = constructProductUrl();
+
   return (
     <div className="my-5 flex">
       <div className="flex w-[350px] gap-4">
         <img src="" alt="" className="size-32 rounded-xl" />
         <div className="mt-3">
           <Link
-            to={`/product/${item.product.slug}`}
+            to={productUrl}
             className="text-lg font-bold hover:text-blue-500 hover:underline"
           >
-            {item.product.name}
+            {productName}
           </Link>
           {/* {item.product.specifications.map((spec, index) => (
             <p key={index} className="text-sm opacity-50">

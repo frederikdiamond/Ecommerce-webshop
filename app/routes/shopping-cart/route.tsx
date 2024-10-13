@@ -1,18 +1,25 @@
-import { json, type LoaderFunctionArgs } from "@remix-run/node";
+import {
+  ActionFunction,
+  ActionFunctionArgs,
+  json,
+  type LoaderFunctionArgs,
+} from "@remix-run/node";
 import { useEffect, useState } from "react";
 import ShoppingCartItem from "./ShoppingCartItem";
-import { Product } from "~/types/ProductTypes";
 import { formatPrice } from "~/helpers/formatPrice";
 import {
+  productConfigurations,
   productOptions,
   products,
   shoppingCartItemConfigurations,
   shoppingCartItems,
 } from "~/db/schema.server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "~/db/index.server";
-import { useLoaderData } from "@remix-run/react";
+import { useFetcher, useLoaderData } from "@remix-run/react";
 import { authenticator } from "~/services/auth.server";
+import { Product } from "~/types/ProductTypes";
+import { CartItem } from "~/types/CartItemTypes";
 // import { CloseIcon, HeartIcon, MinusIcon, PlusIcon } from "~/components/Icons";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -28,10 +35,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         cartItemId: shoppingCartItems.id,
         productId: shoppingCartItems.productId,
         name: products.name,
+        slug: products.slug,
         quantity: shoppingCartItems.quantity,
         price: shoppingCartItems.price,
-        configLabel: productOptions.optionLabel,
-        configPriceModifier: productOptions.priceModifier,
+        category: productConfigurations.category,
+        optionLabel: productOptions.optionLabel,
+        optionId: productOptions.id,
+        priceModifier: productOptions.priceModifier,
       })
       .from(shoppingCartItems)
       .leftJoin(products, eq(shoppingCartItems.productId, products.id))
@@ -41,41 +51,58 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       )
       .leftJoin(
         productOptions,
-        eq(shoppingCartItemConfigurations.configurationId, productOptions.id),
+        eq(shoppingCartItemConfigurations.optionId, productOptions.id),
+      )
+      .leftJoin(
+        productConfigurations,
+        eq(productOptions.configurationId, productConfigurations.id),
       )
       .where(eq(shoppingCartItems.userId, user.id));
 
-    console.log("Fetched cart items: ", cartItems);
+    console.log(cartItems);
 
-    const groupedCart = cartItems.reduce((acc: any, row: any) => {
-      const {
-        cartItemId,
-        productId,
-        name,
-        quantity,
-        price,
-        configLabel,
-        configPriceModifier,
-      } = row;
-
-      if (!acc[cartItemId]) {
-        acc[cartItemId] = {
+    const groupedCart = cartItems.reduce(
+      (acc: Record<number, CartItem>, row) => {
+        const {
           cartItemId,
           productId,
           name,
+          slug,
           quantity,
           price,
-          configurations: [],
-        };
-      }
+          category,
+          optionLabel,
+          optionId,
+          priceModifier,
+        } = row;
 
-      acc[cartItemId].configurations.push({
-        configLabel,
-        configPriceModifier,
-      });
+        if (!acc[cartItemId]) {
+          acc[cartItemId] = {
+            cartItemId,
+            product: {
+              id: productId,
+              name: name || undefined,
+              slug: slug || undefined,
+            },
+            quantity,
+            price,
+            configurations: [],
+          };
+        }
 
-      return acc;
-    }, {});
+        if (category && optionLabel && optionId !== undefined) {
+          acc[cartItemId].configurations.push({
+            category,
+            optionLabel,
+            optionId,
+            priceModifier,
+          });
+        }
+
+        return acc;
+      },
+      {},
+    );
 
     const cart = Object.values(groupedCart);
 
@@ -86,24 +113,65 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 };
 
-export interface CartItem {
-  cartItemId: number;
-  product: Product;
-  quantity: number;
-  price: number;
-  configurations: {
-    configLabel: string;
-    configPriceModifier: number;
-  }[];
-}
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const user = await authenticator.isAuthenticated(request);
+
+  if (!user) {
+    return json({ error: "User not authenticated" }, { status: 401 });
+  }
+
+  const formData = await request.formData();
+  const action = formData.get("action");
+
+  if (action === "removeItem") {
+    const cartItemId = formData.get("cartItemId");
+
+    if (!cartItemId) {
+      return json({ error: "Invalid form data" }, { status: 400 });
+    }
+
+    try {
+      // Remove configurations first
+      await db
+        .delete(shoppingCartItemConfigurations)
+        .where(
+          eq(shoppingCartItemConfigurations.cartItemId, Number(cartItemId)),
+        );
+
+      // Then remove the cart item
+      await db
+        .delete(shoppingCartItems)
+        .where(
+          and(
+            eq(shoppingCartItems.id, Number(cartItemId)),
+            eq(shoppingCartItems.userId, user.id),
+          ),
+        );
+
+      return json({ success: true, message: "Item removed from cart" });
+    } catch (error) {
+      console.error("Error removing item from cart:", error);
+      return json(
+        { error: "Failed to remove item from cart" },
+        { status: 500 },
+      );
+    }
+  }
+
+  return json({ error: "Invalid action" }, { status: 400 });
+};
 
 export default function ShoppingCart({
   userAddress,
 }: {
   userAddress: string | null;
 }) {
-  const { cart } = useLoaderData<{ cart: CartItem[] }>();
-  const [items, setItems] = useState<CartItem[]>(cart || []);
+  const { cart, error } = useLoaderData<{
+    cart: CartItem[] | null;
+    error?: string;
+  }>();
+  const fetcher = useFetcher();
+  const [items, setItems] = useState<CartItem[]>([]);
   const [isGuest, setIsGuest] = useState<boolean>(false);
 
   useEffect(() => {
@@ -119,24 +187,32 @@ export default function ShoppingCart({
   }, [cart]);
 
   const handleQuantityChange = (id: number, newQuantity: number): void => {
-    const updatedItems = items.map((item) =>
-      item.cartItemId === id
-        ? { ...item, quantity: Math.max(1, newQuantity) }
-        : item,
+    setItems((prevItems) =>
+      prevItems.map((item) =>
+        item.cartItemId === id
+          ? { ...item, quantity: Math.max(1, newQuantity) }
+          : item,
+      ),
     );
-    setItems(updatedItems);
 
     if (isGuest) {
-      localStorage.setItem("shoppingCart", JSON.stringify(updatedItems));
+      localStorage.setItem("shoppingCart", JSON.stringify(items));
     }
   };
 
   const handleRemoveItem = (id: number): void => {
-    const updatedItems = items.filter((item) => item.cartItemId !== id);
-    setItems(updatedItems);
+    setItems((prevItems) => prevItems.filter((item) => item.cartItemId !== id));
 
     if (isGuest) {
-      localStorage.setItem("shoppingCart", JSON.stringify(updatedItems));
+      localStorage.setItem(
+        "shoppingCart",
+        JSON.stringify(items.filter((item) => item.cartItemId !== id)),
+      );
+    } else {
+      fetcher.submit(
+        { action: "removeItem", cartItemId: id.toString() },
+        { method: "post" },
+      );
     }
   };
 

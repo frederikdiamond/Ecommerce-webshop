@@ -160,7 +160,7 @@ export const shoppingCartItemConfigurations = pgTable(
     cartItemId: integer("cart_item_id")
       .notNull()
       .references(() => shoppingCartItems.id), // Reference to shopping cart item
-    configurationId: integer("configuration_id")
+    optionId: integer("option_id")
       .notNull()
       .references(() => productOptions.id), // Reference to the selected option
   },

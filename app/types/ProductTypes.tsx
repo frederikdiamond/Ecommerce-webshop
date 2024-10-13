@@ -1,7 +1,7 @@
 export interface Product {
   id: number;
-  slug: string;
-  name: string;
+  slug?: string;
+  name?: string;
   description: string;
   specifications: string[];
   basePrice: number;

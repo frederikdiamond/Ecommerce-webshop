@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
-import { LoaderFunction, json } from "@remix-run/node";
-import { useLoaderData, useSearchParams } from "@remix-run/react";
+import { ActionFunction, LoaderFunction, json } from "@remix-run/node";
+import { useFetcher, useLoaderData, useSearchParams } from "@remix-run/react";
 import { eq } from "drizzle-orm";
 import { useCallback, useEffect, useState } from "react";
 import CustomerReviewSection from "~/components/CustomerReviewSection";
@@ -12,9 +12,12 @@ import {
   productConfigurations,
   productOptions,
   products,
+  shoppingCartItemConfigurations,
+  shoppingCartItems,
 } from "~/db/schema.server";
 import { formatPrice } from "~/helpers/formatPrice";
 import { Product } from "~/types/ProductTypes";
+import { authenticator } from "../services/auth.server";
 
 type ConfigOption = {
   label: string;
@@ -25,6 +28,49 @@ type ConfigCategory = {
   name: string;
   options: ConfigOption[];
   defaultOption?: ConfigOption;
+};
+
+export const action: ActionFunction = async ({ request }) => {
+  const user = await authenticator.isAuthenticated(request);
+
+  if (!user) {
+    return json({ error: "User not authenticated" }, { status: 401 });
+  }
+
+  const formData = await request.formData();
+  const productId = formData.get("productId");
+  const price = formData.get("price");
+  const configurations = JSON.parse(formData.get("configurations") as string);
+
+  if (!productId || !price || !configurations) {
+    return json({ error: "Invalid form data" }, { status: 400 });
+  }
+
+  try {
+    const [cartItem] = await db
+      .insert(shoppingCartItems)
+      .values({
+        userId: user.id,
+        productId: Number(productId),
+        price: Number(price),
+        quantity: 1,
+      })
+      .returning();
+
+    const configInserts = Object.entries(configurations).map(
+      ([category, optionId]) => ({
+        cartItemId: cartItem.id,
+        optionId: Number(optionId),
+      }),
+    );
+
+    await db.insert(shoppingCartItemConfigurations).values(configInserts);
+
+    return json({ success: true, message: "Product added to cart" });
+  } catch (error) {
+    console.error("Error adding product to cart:", error);
+    return json({ error: "Failed to add product to cart" }, { status: 500 });
+  }
 };
 
 export const loader: LoaderFunction = async ({ params, request }) => {
@@ -50,6 +96,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
 
     const configResults = await db
       .select({
+        id: productOptions.id,
         category: productConfigurations.category,
         optionLabel: productOptions.optionLabel,
         priceModifier: productOptions.priceModifier,
@@ -69,7 +116,11 @@ export const loader: LoaderFunction = async ({ params, request }) => {
           category = { name: row.category, options: [], defaultOption: null };
           acc.push(category);
         }
-        const option = { label: row.optionLabel, price: row.priceModifier };
+        const option = {
+          id: row.id,
+          label: row.optionLabel,
+          price: row.priceModifier,
+        };
         category.options.push(option);
         if (row.isDefault) {
           category.defaultOption = option;
@@ -116,10 +167,10 @@ export default function ProductPage() {
   const [isHovering, setIsHovering] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showEditConfiguration, setShowEditConfiguration] = useState(false);
-
   const [selectedConfigurations, setSelectedConfigurations] = useState(
     initialSelectedConfigurations,
   );
+  const fetcher = useFetcher();
 
   const handleCloseFullscreen = useCallback(() => {
     setIsFullscreen(false);
@@ -146,10 +197,6 @@ export default function ProductPage() {
       [category]: option,
     }));
   };
-
-  // if (!product) {
-  //   return <div>Product not found: {params.slug}</div>;
-  // }
 
   const images = product.images || [product.images];
 
@@ -183,6 +230,27 @@ export default function ProductPage() {
       0,
     );
     return product.basePrice + additionalCost;
+  };
+
+  const handleAddToCart = () => {
+    const configurationIds = Object.entries(selectedConfigurations).reduce(
+      (acc, [category, option]) => {
+        if (option.id) {
+          acc[category] = option.id;
+        }
+        return acc;
+      },
+      {},
+    );
+
+    fetcher.submit(
+      {
+        productId: product.id.toString(),
+        price: calculateTotalPrice().toString(),
+        configurations: JSON.stringify(configurationIds),
+      },
+      { method: "post" },
+    );
   };
 
   return (
@@ -298,9 +366,21 @@ export default function ProductPage() {
             <button className="h-12 w-32 rounded-xl bg-gradient-to-b from-[#0EBEFE] to-[#312FAD] text-center font-semibold text-white transition duration-200 ease-in-out hover:scale-105 active:scale-95">
               Buy it Now
             </button>
-            <button className="h-12 w-32 rounded-xl text-center font-semibold text-black transition-all duration-200 ease-in-out hover:bg-black/10 active:scale-95 active:bg-black/20">
-              Add to Cart
+            <button
+              onClick={handleAddToCart}
+              disabled={fetcher.state === "submitting"}
+              className="h-12 w-32 rounded-xl text-center font-semibold text-black transition-all duration-200 ease-in-out hover:bg-black/10 active:scale-95 active:bg-black/20"
+            >
+              {fetcher.state === "submitting" ? "Adding..." : "Add to Cart"}
             </button>
+            {fetcher.data?.success && (
+              <p className="mt-2 text-green-500">
+                Product added to cart successfully!
+              </p>
+            )}
+            {fetcher.data?.error && (
+              <p className="mt-2 text-red-500">{fetcher.data.error}</p>
+            )}
           </div>
         </div>
       </div>

@@ -183,6 +183,13 @@
       "when": 1728768170959,
       "tag": "0025_broken_susan_delgado",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1728826833144,
+      "tag": "0026_demonic_longshot",
+      "breakpoints": true
     }
   ]
 }
