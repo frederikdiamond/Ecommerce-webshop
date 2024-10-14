@@ -20,6 +20,7 @@ import { useFetcher, useLoaderData } from "@remix-run/react";
 import { authenticator } from "~/services/auth.server";
 import { Product } from "~/types/ProductTypes";
 import { CartItem } from "~/types/CartItemTypes";
+import { CustomButton } from "~/components/Buttons";
 // import { CloseIcon, HeartIcon, MinusIcon, PlusIcon } from "~/components/Icons";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -36,6 +37,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         productId: shoppingCartItems.productId,
         name: products.name,
         slug: products.slug,
+        images: products.images,
         quantity: shoppingCartItems.quantity,
         price: shoppingCartItems.price,
         category: productConfigurations.category,
@@ -59,8 +61,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       )
       .where(eq(shoppingCartItems.userId, user.id));
 
-    console.log(cartItems);
-
     const groupedCart = cartItems.reduce(
       (acc: Record<number, CartItem>, row) => {
         const {
@@ -68,6 +68,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           productId,
           name,
           slug,
+          images,
           quantity,
           price,
           category,
@@ -83,6 +84,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
               id: productId,
               name: name || undefined,
               slug: slug || undefined,
+              images: images || [],
             },
             quantity,
             price,
@@ -246,7 +248,15 @@ export default function ShoppingCart({
                 <p className="w-[120px] text-center">Quantity</p>
                 <p className="w-[100px] text-right">Price</p>
               </div>
+
               <div className="mt-2.5 border border-black/10" />
+
+              {items && items.length === 0 && (
+                <p className="mt-10 h-[200vh] text-center text-lg font-medium">
+                  Your shopping cart is empty.
+                </p>
+              )}
+
               {items.map((item) => (
                 <ShoppingCartItem
                   key={item.cartItemId}
@@ -257,9 +267,16 @@ export default function ShoppingCart({
               ))}
             </div>
           </div>
-          <div className="mt-[34px] flex w-[300px] flex-col gap-5 rounded-xl border border-black/10 p-3.5">
+          <div className="sticky top-[90px] z-10 mt-[35px] flex h-fit w-[300px] flex-col gap-5 rounded-xl border border-black/10 bg-white p-3.5">
             {/* Discount code */}
-            <div></div>
+            <div className="flex justify-between gap-2">
+              <span className="text-nowrap opacity-50">Discount Code</span>
+              <input
+                type="text"
+                placeholder="Type here..."
+                className="w-[150px] text-right placeholder:text-black/50 focus:outline-none"
+              />
+            </div>
 
             {/* Subtotal */}
             <div className="flex justify-between">
@@ -298,6 +315,13 @@ export default function ShoppingCart({
                 )}
               </span> */}
             </div>
+
+            <CustomButton
+              disabled={items.length === 0}
+              className={`mt-2.5 ${items.length === 0 ? "cursor-not-allowed opacity-50 hover:scale-100 active:scale-100" : ""}`}
+            >
+              Checkout Now
+            </CustomButton>
           </div>
         </div>
       </div>

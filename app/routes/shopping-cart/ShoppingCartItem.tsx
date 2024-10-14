@@ -33,7 +33,11 @@ export default function ShoppingCartItem({
   return (
     <div className="my-5 flex">
       <div className="flex w-[350px] gap-4">
-        <img src="" alt="" className="size-32 rounded-xl" />
+        <img
+          src={item.product.images[0]}
+          alt=""
+          className="size-32 rounded-xl object-contain"
+        />
         <div className="mt-3">
           <Link
             to={productUrl}
@@ -41,11 +45,11 @@ export default function ShoppingCartItem({
           >
             {productName}
           </Link>
-          {/* {item.product.specifications.map((spec, index) => (
+          {item.configurations.map((config, index) => (
             <p key={index} className="text-sm opacity-50">
-              {spec}
+              {config.category}: {config.optionLabel}
             </p>
-          ))} */}
+          ))}
         </div>
       </div>
       <div className="mt-3 flex w-[120px] flex-col items-center gap-5">

@@ -49,9 +49,12 @@ export default function Navbar({ user }: { user: User }) {
 
   return (
     <>
-      <nav className="fixed left-0 right-0 top-0 z-[95] flex w-full bg-white">
+      <nav className="fixed left-0 right-0 top-0 z-[99] flex w-full bg-white">
         <div className="mx-10 my-1.5 flex w-full items-center justify-between">
-          <Link to={"/"} className="text-lg leading-relaxed">
+          <Link
+            to={"/"}
+            className={`text-lg leading-relaxed ${user ? "w-[290px]" : "w-[367px]"}`}
+          >
             Tech<span className="font-semibold">Vibe</span>
           </Link>
           {/* Nav links and product menu toggle */}
@@ -79,6 +82,7 @@ export default function Navbar({ user }: { user: User }) {
             </NavLink>
           </div>
           {/* Search, My Cart, and My Account */}
+          {/* <div className="flex items-center gap-3"> */}
           <div className="flex items-center gap-3">
             <IconButton
               href="#"

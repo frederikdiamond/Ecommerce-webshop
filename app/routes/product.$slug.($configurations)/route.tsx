@@ -18,6 +18,7 @@ import {
 import { formatPrice } from "~/helpers/formatPrice";
 import { Product } from "~/types/ProductTypes";
 import { authenticator } from "../services/auth.server";
+import SuccessMessage from "~/components/SuccessMessage";
 
 type ConfigOption = {
   label: string;
@@ -160,7 +161,6 @@ export default function ProductPage() {
       configurations: ConfigCategory[];
       initialSelectedConfigurations: Record<string, ConfigOption>;
     }>();
-  // const params = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -170,6 +170,10 @@ export default function ProductPage() {
   const [selectedConfigurations, setSelectedConfigurations] = useState(
     initialSelectedConfigurations,
   );
+  const [currentSpecifications, setCurrentSpecifications] = useState<string[]>(
+    [],
+  );
+  const [successMessageTrigger, setSuccessMessageTrigger] = useState(0);
   const fetcher = useFetcher();
 
   const handleCloseFullscreen = useCallback(() => {
@@ -181,12 +185,23 @@ export default function ProductPage() {
     Object.entries(selectedConfigurations).forEach(([category, option]) => {
       newSearchParams.set(category.toLowerCase(), option.label.toLowerCase());
     });
+
     setSearchParams(newSearchParams, { replace: true });
   }, [selectedConfigurations, setSearchParams, searchParams]);
 
   useEffect(() => {
     updateUrl();
+    if (hasConfigurations) {
+      updateSpecifications();
+    }
   }, [selectedConfigurations, updateUrl]);
+
+  const updateSpecifications = () => {
+    const updatedSpecs = Object.entries(selectedConfigurations).map(
+      ([category, option]) => `${category}: ${option.label}`,
+    );
+    setCurrentSpecifications(updatedSpecs);
+  };
 
   const handleConfigurationChange = (
     category: string,
@@ -251,10 +266,18 @@ export default function ProductPage() {
       },
       { method: "post" },
     );
+
+    setSuccessMessageTrigger((prev) => prev + 1);
   };
+
+  const hasConfigurations = configurations.length > 0;
 
   return (
     <main className="mt-16 flex flex-col items-center gap-20">
+      <SuccessMessage
+        text="Product added to cart"
+        triggerShow={successMessageTrigger}
+      />
       <div className="grid h-screen w-[1000px] grid-cols-2 gap-10">
         <div className="w-full">
           <div className="sticky top-36">
@@ -313,21 +336,27 @@ export default function ProductPage() {
           <div>
             <h1 className="text-3xl font-bold">{product.name}</h1>
             <p className="mt-3.5 text-lg font-medium">{product.description}</p>
-            {/* If product is configurable, show button to configure. */}
             <ul className="mt-4 list-disc pl-5 text-sm leading-loose opacity-75">
-              {product.specifications.map((spec, index) => (
-                <li key={index}>{spec}</li>
-              ))}
+              {hasConfigurations
+                ? currentSpecifications.map((spec, index) => (
+                    <li key={index}>{spec}</li>
+                  ))
+                : product.specifications.map((spec, index) => (
+                    <li key={index}>{spec}</li>
+                  ))}
             </ul>
-            <button
-              onClick={toggleConfigurationView}
-              className="text-sm font-medium text-blue-500 hover:text-blue-700 hover:underline"
-            >
-              {showEditConfiguration
-                ? "Save Configuration"
-                : "Edit Configuration"}
-            </button>
-            {showEditConfiguration && (
+            {hasConfigurations && (
+              <button
+                onClick={toggleConfigurationView}
+                className="text-sm font-medium text-blue-500 hover:text-blue-700 hover:underline"
+              >
+                {showEditConfiguration
+                  ? "Save Configuration"
+                  : "Edit Configuration"}
+              </button>
+            )}
+
+            {showEditConfiguration && hasConfigurations && (
               <div className="mt-4 space-y-4">
                 {configurations.map((category) => (
                   <div key={category.name}>
@@ -373,11 +402,11 @@ export default function ProductPage() {
             >
               {fetcher.state === "submitting" ? "Adding..." : "Add to Cart"}
             </button>
-            {fetcher.data?.success && (
+            {/* {fetcher.data?.success && (
               <p className="mt-2 text-green-500">
                 Product added to cart successfully!
               </p>
-            )}
+            )} */}
             {fetcher.data?.error && (
               <p className="mt-2 text-red-500">{fetcher.data.error}</p>
             )}

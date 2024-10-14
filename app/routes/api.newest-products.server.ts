@@ -36,7 +36,7 @@ export async function loader({ request }: { request: Request }) {
         ...product,
         id: product.id.toString(),
         specifications: product.specifications || [],
-        price: product.price / 100,
+        price: product.price,
         images: product.images || null,
         createdAt: product.createdAt.toISOString(),
       })),
