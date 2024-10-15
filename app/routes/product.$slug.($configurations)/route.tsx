@@ -41,9 +41,10 @@ export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
   const productId = formData.get("productId");
   const price = formData.get("price");
-  const configurations = JSON.parse(formData.get("configurations") as string);
+  // const configurations = JSON.parse(formData.get("configurations") as string);
+  const configurationsString = formData.get("configurations") as string | null;
 
-  if (!productId || !price || !configurations) {
+  if (!productId || !price) {
     return json({ error: "Invalid form data" }, { status: 400 });
   }
 
@@ -58,14 +59,19 @@ export const action: ActionFunction = async ({ request }) => {
       })
       .returning();
 
-    const configInserts = Object.entries(configurations).map(
-      ([category, optionId]) => ({
-        cartItemId: cartItem.id,
-        optionId: Number(optionId),
-      }),
-    );
+    if (configurationsString) {
+      const configurations = JSON.parse(configurationsString);
+      const configInserts = Object.entries(configurations).map(
+        ([category, optionId]) => ({
+          cartItemId: cartItem.id,
+          optionId: Number(optionId),
+        }),
+      );
 
-    await db.insert(shoppingCartItemConfigurations).values(configInserts);
+      if (configInserts.length > 0) {
+        await db.insert(shoppingCartItemConfigurations).values(configInserts);
+      }
+    }
 
     return json({ success: true, message: "Product added to cart" });
   } catch (error) {

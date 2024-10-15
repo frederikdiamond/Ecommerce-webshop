@@ -20,8 +20,7 @@ import { useFetcher, useLoaderData } from "@remix-run/react";
 import { authenticator } from "~/services/auth.server";
 import { Product } from "~/types/ProductTypes";
 import { CartItem } from "~/types/CartItemTypes";
-import { CustomButton } from "~/components/Buttons";
-// import { CloseIcon, HeartIcon, MinusIcon, PlusIcon } from "~/components/Icons";
+import { Checkbox, CustomButton } from "~/components/Buttons";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const user = await authenticator.isAuthenticated(request);
@@ -174,6 +173,7 @@ export default function ShoppingCart({
   }>();
   const fetcher = useFetcher();
   const [items, setItems] = useState<CartItem[]>([]);
+  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [isGuest, setIsGuest] = useState<boolean>(false);
 
   useEffect(() => {
@@ -232,6 +232,26 @@ export default function ShoppingCart({
 
   const shippingCost = 5000; // Fixed for testing purposes
 
+  const handleItemSelect = (itemId: number, isSelected: boolean) => {
+    setSelectedItems((prev) => {
+      const newSet = new Set(prev);
+      if (isSelected) {
+        newSet.add(itemId);
+      } else {
+        newSet.delete(itemId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (isSelected: boolean) => {
+    if (isSelected) {
+      setSelectedItems(new Set(items.map((item) => item.cartItemId)));
+    } else {
+      setSelectedItems(new Set());
+    }
+  };
+
   return (
     <main className="mt-32 flex flex-col items-center">
       <div className="flex flex-col items-start">
@@ -243,10 +263,17 @@ export default function ShoppingCart({
         <div className="mt-10 flex gap-10">
           <div className="min-w-fit">
             <div>
-              <div className="flex font-semibold opacity-75">
-                <p className="w-[350px]">Product</p>
-                <p className="w-[120px] text-center">Quantity</p>
-                <p className="w-[100px] text-right">Price</p>
+              <div className="flex font-semibold">
+                <div className="flex w-[25px] items-center">
+                  <Checkbox
+                    selected={selectedItems.size === items.length}
+                    onChange={handleSelectAll}
+                    parentInput={true}
+                  />
+                </div>
+                <p className="w-[350px] opacity-75">Product</p>
+                <p className="w-[120px] text-center opacity-75">Quantity</p>
+                <p className="w-[100px] text-right opacity-75">Price</p>
               </div>
 
               <div className="mt-2.5 border border-black/10" />
@@ -263,6 +290,10 @@ export default function ShoppingCart({
                   item={item}
                   onQuantityChange={handleQuantityChange}
                   onRemove={handleRemoveItem}
+                  isSelected={selectedItems.has(item.cartItemId)}
+                  onSelect={(isSelected) =>
+                    handleItemSelect(item.cartItemId, isSelected)
+                  }
                 />
               ))}
             </div>

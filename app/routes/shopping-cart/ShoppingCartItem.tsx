@@ -1,4 +1,5 @@
 import { Link } from "@remix-run/react";
+import { Checkbox } from "~/components/Buttons";
 import { MinusIcon, PlusIcon, HeartIcon, TrashIcon } from "~/components/Icons";
 import { formatPrice } from "~/helpers/formatPrice";
 import { CartItem } from "~/types/CartItemTypes";
@@ -7,10 +8,14 @@ export default function ShoppingCartItem({
   item,
   onQuantityChange,
   onRemove,
+  isSelected,
+  onSelect,
 }: {
   item: CartItem;
   onQuantityChange: (id: number, newQuantity: number) => void;
   onRemove: (id: number) => void;
+  isSelected: boolean;
+  onSelect: (selected: boolean) => void;
 }) {
   const productName = item.product?.name || "Unnamed Product";
   const baseSlug = item.product?.slug;
@@ -32,6 +37,9 @@ export default function ShoppingCartItem({
 
   return (
     <div className="my-5 flex">
+      <div className="my-auto w-[25px]">
+        <Checkbox selected={isSelected} onChange={onSelect} />
+      </div>
       <div className="flex w-[350px] gap-4">
         <img
           src={item.product.images[0]}
