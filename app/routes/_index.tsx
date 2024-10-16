@@ -32,9 +32,6 @@ export const loader: LoaderFunction = async ({ request }) => {
 export default function Index() {
   const { bestSelling, newest } = useLoaderData<typeof loader>();
 
-  console.log("Loader data (bestSelling):", bestSelling);
-  console.log("Loader data (newest):", newest);
-
   return (
     <main className="mt-16">
       <div className="mx-auto flex w-[950px] flex-col gap-10">

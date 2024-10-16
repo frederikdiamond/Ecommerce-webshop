@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { useCallback, useEffect, useState } from "react";
 import CustomerReviewSection from "~/components/CustomerReviewSection";
 import { FullscreenImage } from "~/components/FullscreenImage";
-import { ArrowIcom } from "~/components/Icons";
+import { ArrowIcon } from "~/components/Icons";
 import { db } from "~/db/index.server";
 import {
   productConfigurations,
@@ -19,17 +19,11 @@ import { formatPrice } from "~/helpers/formatPrice";
 import { Product } from "~/types/ProductTypes";
 import { authenticator } from "../services/auth.server";
 import SuccessMessage from "~/components/SuccessMessage";
-
-type ConfigOption = {
-  label: string;
-  price: number;
-};
-
-type ConfigCategory = {
-  name: string;
-  options: ConfigOption[];
-  defaultOption?: ConfigOption;
-};
+import { ConfigCategory, ConfigOption } from "~/types/ConfigTypes";
+import {
+  useProductConfiguration,
+  constructProductUrl,
+} from "~/utils/productConfigurationUtil";
 
 export const action: ActionFunction = async ({ request }) => {
   const user = await authenticator.isAuthenticated(request);
@@ -168,17 +162,23 @@ export default function ProductPage() {
       initialSelectedConfigurations: Record<string, ConfigOption>;
     }>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const {
+    selectedConfigurations,
+    currentSpecifications,
+    hasConfigurations,
+    handleConfigurationChange,
+    calculateTotalPrice,
+    getDisplaySpecifications,
+  } = useProductConfiguration(
+    product,
+    configurations,
+    initialSelectedConfigurations,
+  );
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showEditConfiguration, setShowEditConfiguration] = useState(false);
-  const [selectedConfigurations, setSelectedConfigurations] = useState(
-    initialSelectedConfigurations,
-  );
-  const [currentSpecifications, setCurrentSpecifications] = useState<string[]>(
-    [],
-  );
   const [successMessageTrigger, setSuccessMessageTrigger] = useState(0);
   const fetcher = useFetcher();
 
@@ -197,27 +197,7 @@ export default function ProductPage() {
 
   useEffect(() => {
     updateUrl();
-    if (hasConfigurations) {
-      updateSpecifications();
-    }
   }, [selectedConfigurations, updateUrl]);
-
-  const updateSpecifications = () => {
-    const updatedSpecs = Object.entries(selectedConfigurations).map(
-      ([category, option]) => `${category}: ${option.label}`,
-    );
-    setCurrentSpecifications(updatedSpecs);
-  };
-
-  const handleConfigurationChange = (
-    category: string,
-    option: ConfigOption,
-  ) => {
-    setSelectedConfigurations((prev) => ({
-      ...prev,
-      [category]: option,
-    }));
-  };
 
   const images = product.images || [product.images];
 
@@ -245,14 +225,6 @@ export default function ProductPage() {
     setShowEditConfiguration(!showEditConfiguration);
   };
 
-  const calculateTotalPrice = () => {
-    const additionalCost = Object.values(selectedConfigurations).reduce(
-      (sum, option) => sum + option.price,
-      0,
-    );
-    return product.basePrice + additionalCost;
-  };
-
   const handleAddToCart = () => {
     const configurationIds = Object.entries(selectedConfigurations).reduce(
       (acc, [category, option]) => {
@@ -275,8 +247,6 @@ export default function ProductPage() {
 
     setSuccessMessageTrigger((prev) => prev + 1);
   };
-
-  const hasConfigurations = configurations.length > 0;
 
   return (
     <main className="mt-16 flex flex-col items-center gap-20">
@@ -307,7 +277,7 @@ export default function ProductPage() {
               }`}
               aria-label="Previous image"
             >
-              <ArrowIcom className="size-6 rotate-180" />
+              <ArrowIcon className="size-6 rotate-180" />
             </button>
             <button
               onClick={goToNext}
@@ -317,7 +287,7 @@ export default function ProductPage() {
               }`}
               aria-label="Next image"
             >
-              <ArrowIcom className="size-6" />
+              <ArrowIcon className="size-6" />
             </button>
             <div
               className={`absolute bottom-4 left-1/2 flex -translate-x-1/2 space-x-2 transition-all duration-200 ease-in-out ${isHovering ? "opacity-100" : "pointer-events-none opacity-0"}`}
@@ -343,13 +313,9 @@ export default function ProductPage() {
             <h1 className="text-3xl font-bold">{product.name}</h1>
             <p className="mt-3.5 text-lg font-medium">{product.description}</p>
             <ul className="mt-4 list-disc pl-5 text-sm leading-loose opacity-75">
-              {hasConfigurations
-                ? currentSpecifications.map((spec, index) => (
-                    <li key={index}>{spec}</li>
-                  ))
-                : product.specifications.map((spec, index) => (
-                    <li key={index}>{spec}</li>
-                  ))}
+              {getDisplaySpecifications().map((spec, index) => (
+                <li key={index}>{spec}</li>
+              ))}
             </ul>
             {hasConfigurations && (
               <button

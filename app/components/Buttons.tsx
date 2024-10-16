@@ -94,7 +94,7 @@ export const Checkbox = ({
   };
 
   return (
-    <label className="flex cursor-pointer items-center">
+    <label className="flex cursor-pointer select-none items-center">
       <div
         role="checkbox"
         aria-checked={selected}

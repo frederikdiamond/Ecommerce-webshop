@@ -1,5 +1,4 @@
 import {
-  ActionFunction,
   ActionFunctionArgs,
   json,
   type LoaderFunctionArgs,
@@ -18,9 +17,11 @@ import { and, eq } from "drizzle-orm";
 import { db } from "~/db/index.server";
 import { useFetcher, useLoaderData } from "@remix-run/react";
 import { authenticator } from "~/services/auth.server";
-import { Product } from "~/types/ProductTypes";
+// import { Product } from "~/types/ProductTypes";
 import { CartItem } from "~/types/CartItemTypes";
 import { Checkbox, CustomButton } from "~/components/Buttons";
+import { DropdownMenu } from "~/components/DropdownMenu";
+import { HeartIcon, TrashIcon } from "~/components/Icons";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const user = await authenticator.isAuthenticated(request);
@@ -36,6 +37,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         productId: shoppingCartItems.productId,
         name: products.name,
         slug: products.slug,
+        specifications: products.specifications,
         images: products.images,
         quantity: shoppingCartItems.quantity,
         price: shoppingCartItems.price,
@@ -43,6 +45,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         optionLabel: productOptions.optionLabel,
         optionId: productOptions.id,
         priceModifier: productOptions.priceModifier,
+        isCustomizable: products.isCustomizable,
       })
       .from(shoppingCartItems)
       .leftJoin(products, eq(shoppingCartItems.productId, products.id))
@@ -67,6 +70,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           productId,
           name,
           slug,
+          specifications,
           images,
           quantity,
           price,
@@ -74,6 +78,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           optionLabel,
           optionId,
           priceModifier,
+          isCustomizable,
         } = row;
 
         if (!acc[cartItemId]) {
@@ -83,7 +88,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
               id: productId,
               name: name || undefined,
               slug: slug || undefined,
+              specifications: specifications || [],
               images: images || [],
+              isCustomizable: isCustomizable || false,
             },
             quantity,
             price,
@@ -252,91 +259,118 @@ export default function ShoppingCart({
     }
   };
 
+  const dropdownItems = [
+    {
+      label: "Save to wishlist",
+      icon: <HeartIcon className="size-4" />,
+      onClick: () => {
+        /* handle save to wishlist */
+      },
+    },
+    {
+      label: "Remove from cart",
+      icon: <TrashIcon className="size-4" />,
+      onClick: () => {
+        /* handle remove from cart */
+      },
+    },
+  ];
+
   return (
     <main className="mt-32 flex flex-col items-center">
-      <div className="flex flex-col items-start">
-        <div className="flex items-start gap-3">
-          <h1 className="text-4xl font-bold tracking-wide">SHOPPING CART</h1>
-          {/* Total products counter */}
-          <p className="text-lg font-bold">[{totalItems}]</p>
-        </div>
-        <div className="mt-10 flex gap-10">
-          <div className="min-w-fit">
-            <div>
-              <div className="flex font-semibold">
-                <div className="flex w-[25px] items-center">
-                  <Checkbox
-                    selected={selectedItems.size === items.length}
-                    onChange={handleSelectAll}
-                    parentInput={true}
-                  />
+      <div className="flex gap-10">
+        <div className="flex flex-col">
+          <div className="flex w-full items-center justify-between">
+            <div className="flex items-start gap-3">
+              <h1 className="text-4xl font-bold tracking-wide">
+                SHOPPING CART
+              </h1>
+              {/* Total products counter */}
+              <p className="text-lg font-bold">[{totalItems}]</p>
+            </div>
+            <DropdownMenu label="Options" items={dropdownItems} />
+          </div>
+
+          <div className="mt-10 flex gap-10">
+            <div className="min-w-fit">
+              <div>
+                <div className="flex font-semibold">
+                  <div className="flex w-[30px] items-center">
+                    <Checkbox
+                      selected={selectedItems.size === items.length}
+                      onChange={handleSelectAll}
+                      parentInput={true}
+                    />
+                  </div>
+                  <p className="w-[350px] opacity-75">Product</p>
+                  <p className="w-[120px] text-center opacity-75">Quantity</p>
+                  <p className="w-[100px] text-right opacity-75">Price</p>
                 </div>
-                <p className="w-[350px] opacity-75">Product</p>
-                <p className="w-[120px] text-center opacity-75">Quantity</p>
-                <p className="w-[100px] text-right opacity-75">Price</p>
+
+                <div className="mt-2.5 border border-black/10" />
+
+                {items && items.length === 0 && (
+                  <p className="mt-10 h-[200vh] text-center text-lg font-medium">
+                    Your shopping cart is empty.
+                  </p>
+                )}
+
+                {items.map((item) => (
+                  <ShoppingCartItem
+                    key={item.cartItemId}
+                    item={item}
+                    onQuantityChange={handleQuantityChange}
+                    onRemove={handleRemoveItem}
+                    isSelected={selectedItems.has(item.cartItemId)}
+                    onSelect={(isSelected) =>
+                      handleItemSelect(item.cartItemId, isSelected)
+                    }
+                  />
+                ))}
               </div>
-
-              <div className="mt-2.5 border border-black/10" />
-
-              {items && items.length === 0 && (
-                <p className="mt-10 h-[200vh] text-center text-lg font-medium">
-                  Your shopping cart is empty.
-                </p>
-              )}
-
-              {items.map((item) => (
-                <ShoppingCartItem
-                  key={item.cartItemId}
-                  item={item}
-                  onQuantityChange={handleQuantityChange}
-                  onRemove={handleRemoveItem}
-                  isSelected={selectedItems.has(item.cartItemId)}
-                  onSelect={(isSelected) =>
-                    handleItemSelect(item.cartItemId, isSelected)
-                  }
-                />
-              ))}
             </div>
           </div>
-          <div className="sticky top-[90px] z-10 mt-[35px] flex h-fit w-[300px] flex-col gap-5 rounded-xl border border-black/10 bg-white p-3.5">
-            {/* Discount code */}
-            <div className="flex justify-between gap-2">
-              <span className="text-nowrap opacity-50">Discount Code</span>
-              <input
-                type="text"
-                placeholder="Type here..."
-                className="w-[150px] text-right placeholder:text-black/50 focus:outline-none"
-              />
-            </div>
+        </div>
 
-            {/* Subtotal */}
+        <div className="sticky top-[90px] z-10 mt-[115px] flex h-fit w-[300px] flex-col gap-5 rounded-xl border border-black/10 bg-white p-3.5">
+          {/* Discount code */}
+          <div className="flex justify-between gap-2">
+            <span className="text-nowrap opacity-50">Discount Code</span>
+            <input
+              type="text"
+              placeholder="Type here..."
+              className="w-[150px] text-right placeholder:text-black/50 focus:outline-none"
+            />
+          </div>
+
+          {/* Subtotal */}
+          <div className="flex justify-between">
+            <span className="opacity-50">Subtotal</span>
+            <span className="font-semibold">
+              {formatPrice(calculateSubtotal())}
+            </span>
+          </div>
+
+          {/* Shipping */}
+          {userAddress ? (
             <div className="flex justify-between">
-              <span className="opacity-50">Subtotal</span>
-              <span className="font-semibold">
-                {formatPrice(calculateSubtotal())}
-              </span>
+              <span className="opacity-50">Shipping</span>
+              <p className="text-right opacity-50">Address required.</p>
             </div>
-
-            {/* Shipping */}
-            {userAddress ? (
-              <div className="flex justify-between">
-                <span className="opacity-50">Shipping</span>
-                <p className="text-right opacity-50">Address required.</p>
-              </div>
-            ) : (
-              <div className="flex justify-between">
-                <span className="opacity-50">Shipping</span>
-                <span className="text-right">{formatPrice(shippingCost)}</span>
-              </div>
-            )}
-
-            {/* Grand Total */}
+          ) : (
             <div className="flex justify-between">
-              <p>Grand Total</p>
-              <span className="text-right text-lg font-bold">
-                {formatPrice(calculateGrandTotal())}
-              </span>
-              {/* <span className="text-right">
+              <span className="opacity-50">Shipping</span>
+              <span className="text-right">{formatPrice(shippingCost)}</span>
+            </div>
+          )}
+
+          {/* Grand Total */}
+          <div className="flex justify-between">
+            <p>Grand Total</p>
+            <span className="text-right text-lg font-bold">
+              {formatPrice(calculateGrandTotal())}
+            </span>
+            {/* <span className="text-right">
                 {calculateGrandTotal() !== null ? (
                   <span className="text-lg font-bold">
                     {formatPrice(calculateGrandTotal())}
@@ -345,15 +379,14 @@ export default function ShoppingCart({
                   "Address required"
                 )}
               </span> */}
-            </div>
-
-            <CustomButton
-              disabled={items.length === 0}
-              className={`mt-2.5 ${items.length === 0 ? "cursor-not-allowed opacity-50 hover:scale-100 active:scale-100" : ""}`}
-            >
-              Checkout Now
-            </CustomButton>
           </div>
+
+          <CustomButton
+            disabled={items.length === 0}
+            className={`mt-2.5 ${items.length === 0 ? "cursor-not-allowed opacity-50 hover:scale-100 active:scale-100" : ""}`}
+          >
+            Checkout Now
+          </CustomButton>
         </div>
       </div>
     </main>

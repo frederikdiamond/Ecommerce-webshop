@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "@remix-run/react";
 import IconButton from "../IconButton";
 import {
+  DropdownIcon,
   HomeIcon,
   MenuIcon,
   PersonIcon,
@@ -112,16 +113,9 @@ export default function Navbar({ user }: { user: User }) {
                     <PersonIcon />
                   </div>
                   <span>My Account</span>
-                  <svg
+                  <DropdownIcon
                     className={`${showAccountMenu ? "rotate-180" : "rotate-0"} size-3.5 transition-all duration-300 ease-in-out`}
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 616 614"
-                  >
-                    <path
-                      fill="currentColor"
-                      d="m602.442 200l-253 317c-24 29-61 29-84 0l-253-317c-24-30-12-53 25-53h540c38 0 49 23 25 53z"
-                    />
-                  </svg>
+                  />
                 </button>
                 {showAccountMenu && <AccountMenu onClose={closeAccountMenu} />}
               </div>

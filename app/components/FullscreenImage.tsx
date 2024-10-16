@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowIcom, CloseIcon } from "./Icons";
+import { ArrowIcon, CloseIcon } from "./Icons";
 
 interface FullscreenImageProps {
   images: string[];
@@ -91,7 +91,7 @@ export const FullscreenImage: React.FC<FullscreenImageProps> = ({
         }`}
         aria-label="Previous image"
       >
-        <ArrowIcom className="size-6 rotate-180" />
+        <ArrowIcon className="size-6 rotate-180" />
       </button>
       <button
         onClick={goToNext}
@@ -101,7 +101,7 @@ export const FullscreenImage: React.FC<FullscreenImageProps> = ({
         }`}
         aria-label="Next image"
       >
-        <ArrowIcom className="size-6" />
+        <ArrowIcon className="size-6" />
       </button>
       <div
         className={`absolute bottom-4 left-1/2 flex -translate-x-1/2 space-x-2 transition-all duration-200 ease-in-out ${isHovering ? "opacity-100" : "pointer-events-none opacity-0"}`}

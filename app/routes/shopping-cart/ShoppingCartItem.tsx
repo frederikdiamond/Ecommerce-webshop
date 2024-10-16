@@ -3,6 +3,12 @@ import { Checkbox } from "~/components/Buttons";
 import { MinusIcon, PlusIcon, HeartIcon, TrashIcon } from "~/components/Icons";
 import { formatPrice } from "~/helpers/formatPrice";
 import { CartItem } from "~/types/CartItemTypes";
+import {
+  useProductConfiguration,
+  constructProductUrl,
+  SelectedConfigurations,
+} from "~/utils/productConfigurationUtil";
+import { getProductImage } from "~/utils/productImage";
 
 export default function ShoppingCartItem({
   item,
@@ -17,33 +23,39 @@ export default function ShoppingCartItem({
   isSelected: boolean;
   onSelect: (selected: boolean) => void;
 }) {
+  const { product } = item;
   const productName = item.product?.name || "Unnamed Product";
   const baseSlug = item.product?.slug;
 
-  const constructProductUrl = () => {
-    if (!baseSlug) return "";
+  const initialConfigurations: SelectedConfigurations =
+    item.configurations.reduce((acc, config) => {
+      acc[config.category] = {
+        label: config.optionLabel,
+        price: config.priceModifier,
+        id: config.optionId,
+      };
+      return acc;
+    }, {} as SelectedConfigurations);
 
-    const configParams = item.configurations
-      .map(
-        (config) =>
-          `${config.category.toLowerCase()}=${encodeURIComponent(config.optionLabel)}`,
-      )
-      .join("&");
+  const { getDisplaySpecifications } = useProductConfiguration(
+    item.product,
+    item.product.configurations || [],
+    initialConfigurations,
+  );
 
-    return `/product/${baseSlug}${configParams ? `?${configParams}` : ""}`;
-  };
-
-  const productUrl = constructProductUrl();
+  const productUrl = constructProductUrl(baseSlug, initialConfigurations);
+  const displaySpecifications = getDisplaySpecifications();
+  const productImage = getProductImage(product);
 
   return (
     <div className="my-5 flex">
-      <div className="my-auto w-[25px]">
+      <div className="my-auto w-[30px]">
         <Checkbox selected={isSelected} onChange={onSelect} />
       </div>
       <div className="flex w-[350px] gap-4">
         <img
-          src={item.product.images[0]}
-          alt=""
+          src={productImage}
+          alt={productName}
           className="size-32 rounded-xl object-contain"
         />
         <div className="mt-3">
@@ -53,11 +65,18 @@ export default function ShoppingCartItem({
           >
             {productName}
           </Link>
-          {item.configurations.map((config, index) => (
-            <p key={index} className="text-sm opacity-50">
-              {config.category}: {config.optionLabel}
-            </p>
-          ))}
+
+          <ul className="list-disc pl-5 text-sm leading-loose opacity-75">
+            {item.product.isCustomizable && item.configurations.length > 0
+              ? item.configurations.map((config, index) => (
+                  <li
+                    key={index}
+                  >{`${config.category}: ${config.optionLabel}`}</li>
+                ))
+              : displaySpecifications.map((spec, index) => (
+                  <li key={index}>{spec}</li>
+                ))}
+          </ul>
         </div>
       </div>
       <div className="mt-3 flex w-[120px] flex-col items-center gap-5">
