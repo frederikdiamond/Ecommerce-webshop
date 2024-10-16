@@ -112,7 +112,7 @@ export default function Navbar({ user }: { user: User }) {
                   <div className="size-5">
                     <PersonIcon />
                   </div>
-                  <span>My Account</span>
+                  <span className="text-start">My Account</span>
                   <DropdownIcon
                     className={`${showAccountMenu ? "rotate-180" : "rotate-0"} size-3.5 transition-all duration-300 ease-in-out`}
                   />

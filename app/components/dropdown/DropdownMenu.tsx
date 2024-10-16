@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { DropdownIcon } from "./Icons";
+import { useEffect, useRef, useState } from "react";
+import { DropdownIcon } from "../Icons";
 
 type DropdownItem = {
   label: string;
@@ -14,13 +14,30 @@ type DropdownMenuProps = {
 
 export const DropdownMenu = ({ label, items }: DropdownMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleClick = () => {
     setIsOpen(!isOpen);
   };
 
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   return (
-    <div>
+    <div ref={dropdownRef}>
       <button
         onClick={handleClick}
         className={`group relative flex items-center justify-between gap-2.5 rounded border border-black/10 bg-black/5 px-2.5 py-2 transition-all duration-200 ease-in-out hover:border-black/20`}
@@ -43,7 +60,7 @@ export const DropdownMenu = ({ label, items }: DropdownMenuProps) => {
                 item.onClick();
                 setIsOpen(false);
               }}
-              className="group flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-black/50 transition ease-in-out hover:bg-black/5 hover:text-black"
+              className="group flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-black/50 transition duration-200 ease-in-out hover:bg-black/5 hover:text-black active:bg-black/10"
             >
               {item.icon && (
                 <span className="opacity-50 transition duration-200 ease-in-out group-hover:opacity-100">

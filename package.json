@@ -19,6 +19,7 @@
     "@remix-run/react": "2.13.1",
     "@remix-run/serve": "2.13.1",
     "@types/pg": "^8.11.10",
+    "@types/react-transition-group": "^4.4.11",
     "argon2": "^0.41.1",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.33.0",
@@ -28,6 +29,7 @@
     "postgres": "^3.4.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-transition-group": "^4.4.5",
     "remix-auth": "^3.7.0",
     "remix-auth-form": "^1.5.0",
     "tailwind-merge": "^2.5.3"

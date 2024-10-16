@@ -20,8 +20,10 @@ import { authenticator } from "~/services/auth.server";
 // import { Product } from "~/types/ProductTypes";
 import { CartItem } from "~/types/CartItemTypes";
 import { Checkbox, CustomButton } from "~/components/Buttons";
-import { DropdownMenu } from "~/components/DropdownMenu";
+import { DropdownMenu } from "~/components//dropdown/DropdownMenu";
 import { HeartIcon, TrashIcon } from "~/components/Icons";
+import { CSSTransition } from "react-transition-group";
+import "~/components/dropdown/dropdown-menu.css";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const user = await authenticator.isAuthenticated(request);
@@ -288,7 +290,15 @@ export default function ShoppingCart({
               {/* Total products counter */}
               <p className="text-lg font-bold">[{totalItems}]</p>
             </div>
-            <DropdownMenu label="Options" items={dropdownItems} />
+            {/* {selectedItems.size > 0 && ( */}
+            <CSSTransition
+              in={selectedItems.size > 0}
+              timeout={150}
+              classNames="dropdown"
+              unmountOnExit
+            >
+              <DropdownMenu label="Options" items={dropdownItems} />
+            </CSSTransition>
           </div>
 
           <div className="mt-10 flex gap-10">
