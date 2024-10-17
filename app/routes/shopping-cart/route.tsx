@@ -13,13 +13,13 @@ import {
   shoppingCartItemConfigurations,
   shoppingCartItems,
 } from "~/db/schema.server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "~/db/index.server";
 import { useFetcher, useLoaderData } from "@remix-run/react";
 import { authenticator } from "~/services/auth.server";
-// import { Product } from "~/types/ProductTypes";
 import { CartItem } from "~/types/CartItemTypes";
-import { Checkbox, CustomButton } from "~/components/Buttons";
+import { CustomButton } from "~/components/Buttons";
+import { Checkbox } from "~/components/Checkbox";
 import { DropdownMenu } from "~/components//dropdown/DropdownMenu";
 import { HeartIcon, TrashIcon } from "~/components/Icons";
 import { CSSTransition } from "react-transition-group";
@@ -133,10 +133,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const action = formData.get("action");
 
-  if (action === "removeItem") {
-    const cartItemId = formData.get("cartItemId");
+  if (action === "removeItems") {
+    const cartItemIds = JSON.parse(formData.get("cartItemIds") as string);
 
-    if (!cartItemId) {
+    if (!Array.isArray(cartItemIds) || cartItemIds.length === 0) {
       return json({ error: "Invalid form data" }, { status: 400 });
     }
 
@@ -144,25 +144,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       // Remove configurations first
       await db
         .delete(shoppingCartItemConfigurations)
-        .where(
-          eq(shoppingCartItemConfigurations.cartItemId, Number(cartItemId)),
-        );
+        .where(inArray(shoppingCartItemConfigurations.cartItemId, cartItemIds));
 
-      // Then remove the cart item
+      // Then remove the cart items
       await db
         .delete(shoppingCartItems)
         .where(
           and(
-            eq(shoppingCartItems.id, Number(cartItemId)),
+            inArray(shoppingCartItems.id, cartItemIds),
             eq(shoppingCartItems.userId, user.id),
           ),
         );
 
-      return json({ success: true, message: "Item removed from cart" });
+      return json({ success: true, message: "Items removed from cart" });
     } catch (error) {
-      console.error("Error removing item from cart:", error);
+      console.error("Error removing items from cart:", error);
       return json(
-        { error: "Failed to remove item from cart" },
+        { error: "Failed to remove items from cart" },
         { status: 500 },
       );
     }
@@ -211,17 +209,30 @@ export default function ShoppingCart({
     }
   };
 
-  const handleRemoveItem = (id: number): void => {
-    setItems((prevItems) => prevItems.filter((item) => item.cartItemId !== id));
+  const handleRemoveItem = (ids: number | number[]) => {
+    const idsToRemove = Array.isArray(ids) ? ids : [ids];
+
+    setItems((prevItems) =>
+      prevItems.filter((item) => !idsToRemove.includes(item.cartItemId)),
+    );
+
+    setSelectedItems((prevSelected) => {
+      const newSelected = new Set(prevSelected);
+      idsToRemove.forEach((id) => newSelected.delete(id));
+      return newSelected;
+    });
 
     if (isGuest) {
-      localStorage.setItem(
-        "shoppingCart",
-        JSON.stringify(items.filter((item) => item.cartItemId !== id)),
+      const updatedItems = items.filter(
+        (item) => !idsToRemove.includes(item.cartItemId),
       );
+      localStorage.setItem("shoppingCart", JSON.stringify(updatedItems));
     } else {
       fetcher.submit(
-        { action: "removeItem", cartItemId: id.toString() },
+        {
+          action: "removeItems",
+          cartItemIds: JSON.stringify(idsToRemove),
+        },
         { method: "post" },
       );
     }
@@ -265,16 +276,12 @@ export default function ShoppingCart({
     {
       label: "Save to wishlist",
       icon: <HeartIcon className="size-4" />,
-      onClick: () => {
-        /* handle save to wishlist */
-      },
+      onClick: () => {},
     },
     {
       label: "Remove from cart",
       icon: <TrashIcon className="size-4" />,
-      onClick: () => {
-        /* handle remove from cart */
-      },
+      onClick: () => handleRemoveItem(Array.from(selectedItems)),
     },
   ];
 
@@ -287,10 +294,8 @@ export default function ShoppingCart({
               <h1 className="text-4xl font-bold tracking-wide">
                 SHOPPING CART
               </h1>
-              {/* Total products counter */}
               <p className="text-lg font-bold">[{totalItems}]</p>
             </div>
-            {/* {selectedItems.size > 0 && ( */}
             <CSSTransition
               in={selectedItems.size > 0}
               timeout={150}

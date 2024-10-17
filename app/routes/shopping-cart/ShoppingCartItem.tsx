@@ -1,5 +1,5 @@
 import { Link } from "@remix-run/react";
-import { Checkbox } from "~/components/Buttons";
+import { Checkbox } from "~/components/Checkbox";
 import { MinusIcon, PlusIcon, HeartIcon, TrashIcon } from "~/components/Icons";
 import { formatPrice } from "~/helpers/formatPrice";
 import { CartItem } from "~/types/CartItemTypes";
