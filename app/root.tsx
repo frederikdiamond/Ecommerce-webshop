@@ -79,7 +79,7 @@ export default function App() {
   return (
     <>
       <Navbar user={data?.user} />
-      <Outlet />;
+      <Outlet />
     </>
   );
 }

@@ -1,61 +1,95 @@
 import { json, redirect } from "@remix-run/node";
-import { useLoaderData, Link, Form } from "@remix-run/react";
+import { Link, Form, useLoaderData } from "@remix-run/react";
 import type { LoaderFunction, ActionFunction } from "@remix-run/node";
+import { db } from "~/db/index.server";
+import { eq } from "drizzle-orm";
+import { products, wishlistItems, wishlists } from "~/db/schema.server";
+import { authenticator } from "~/services/auth.server";
+import { useState } from "react";
+import { CustomButton } from "~/components/Buttons";
+import { Product } from "~/types/ProductTypes";
 
-interface WishlistItem {
-  id: string;
-  imageUrl: string;
-  name: string;
-}
+// interface WishlistItem {
+//   id: string;
+//   imageUrl: string;
+//   name: string;
+// }
 
-interface Wishlist {
-  id: string;
-  name: string;
-  slug: string;
-  items: WishlistItem[];
-}
+// interface Wishlist {
+//   id: string;
+//   name: string;
+//   slug: string;
+//   items: WishlistItem[];
+// }
 
 interface LoaderData {
-  wishlists: Wishlist[];
+  shoppingWishlists: Wishlist[] | null;
+  error?: string;
 }
 
-export const loader: LoaderFunction = async () => {
-  // Testing with mock data
-  const wishlists: Wishlist[] = [
-    {
-      id: "1",
-      name: "Birthday Wishlist",
-      slug: "birthday-wishlist",
-      items: [
-        {
-          id: "1",
-          imageUrl:
-            "https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/mbp16-spaceblack-select-202310?wid=904&hei=840&fmt=jpeg&qlt=90&.v=1697311054290",
-          name: "Item 1",
+export const loader: LoaderFunction = async ({ request }) => {
+  const user = await authenticator.isAuthenticated(request);
+
+  if (!user) {
+    return json({ wishlists: null });
+  }
+
+  try {
+    const rawShoppingWishlists = await db
+      .select({
+        id: wishlists.id,
+        userId: wishlists.userId,
+        wishlistName: wishlists.name,
+        wishlistcreatedAt: wishlists.createdAt,
+        wishlistupdatedAt: wishlists.updatedAt,
+        wishlistItemId: wishlistItems.id,
+        productId: wishlistItems.productId,
+        productImages: products.images,
+        wishlistItemCreatedAt: wishlistItems.createdAt,
+      })
+      .from(wishlists)
+      .innerJoin(wishlistItems, eq(wishlistItems.wishlistId, wishlists.id))
+      .innerJoin(products, eq(products.id, wishlistItems.productId))
+      .where(eq(wishlists.userId, user.id));
+
+    console.log(rawShoppingWishlists);
+
+    const wishlistsMap: { [key: number]: Wishlist } = {};
+
+    rawShoppingWishlists.forEach((row) => {
+      if (!wishlistsMap[row.wishlistId]) {
+        wishlistsMap[row.wishlistId] = {
+          id: row.wishlistId,
+          userId: row.userId,
+          name: row.wishlistName,
+          createdAt: new Date(row.wishlistCreatedAt),
+          updatedAt: new Date(row.wishlistUpdatedAt),
+          items: [],
+        };
+      }
+
+      wishlistsMap[row.wishlistId].items.push({
+        id: row.wishlistItemId,
+        productId: row.productId,
+        createdAt: new Date(row.wishlistItemCreatedAt),
+        product: {
+          name: row.productName,
+          price: parseFloat(row.productPrice),
+          images: row.productImages, // Assign imageUrl
         },
-        {
-          id: "1",
-          imageUrl:
-            "https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/mbp16-spaceblack-select-202310?wid=904&hei=840&fmt=jpeg&qlt=90&.v=1697311054290",
-          name: "Item 1",
-        },
-      ],
-    },
-    {
-      id: "2",
-      name: "Christmas Wishlist",
-      slug: "christmas-wishlist",
-      items: [
-        {
-          id: "2",
-          imageUrl:
-            "https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/mbp16-spaceblack-gallery2-202310_GEO_DK?wid=4000&hei=3074&fmt=jpeg&qlt=90&.v=1698156926558",
-          name: "Item 2",
-        },
-      ],
-    },
-  ];
-  return json<LoaderData>({ wishlists });
+      });
+    });
+
+    const shoppingWishlists: Wishlist[] = Object.values(wishlistsMap);
+
+    return json<LoaderData>({ shoppingWishlists });
+  } catch (error) {
+    console.error(error);
+    return json<LoaderData>({
+      shoppingWishlists: null,
+      error: "Error fetching wishlists",
+    });
+  }
 };
 
 export const action: ActionFunction = async ({ request }) => {
@@ -67,8 +101,32 @@ export const action: ActionFunction = async ({ request }) => {
   }
 };
 
+interface Wishlist {
+  wishlistId: number;
+  userId: number;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  items: WishlistItem[];
+}
+
+interface WishlistItem {
+  id: number;
+  productId: number;
+  createdAt: Date;
+  product: Product;
+}
+
 export default function Wishlist() {
-  const { wishlists } = useLoaderData<LoaderData>();
+  const { shoppingWishlists, error } = useLoaderData<LoaderData>();
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
+
+  if (!shoppingWishlists || shoppingWishlists.length === 0) {
+    return <div>No wishlists found.</div>;
+  }
 
   return (
     <div className="mt-32 flex flex-col items-center">
@@ -76,42 +134,45 @@ export default function Wishlist() {
         <div className="flex w-[950px] items-center justify-between">
           <div className="flex items-start gap-3">
             <h1 className="text-4xl font-bold tracking-wide">MY WISHLISTS</h1>
-            <p className="text-lg font-bold">[{wishlists.length}]</p>
+            <p className="text-lg font-bold">[{shoppingWishlists.length}]</p>
           </div>
           <Form method="post">
-            <button
+            <CustomButton>Create New</CustomButton>
+
+            {/* <button
               type="submit"
               name="intent"
               value="createWishlist"
               className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
             >
               Create New
-            </button>
+            </button> */}
           </Form>
         </div>
 
         <div className="mt-5 flex flex-col">
-          {wishlists.map((wishlist, index) => (
-            <div key={wishlist.id}>
+          {shoppingWishlists.map((wishlists, index) => (
+            <div key={wishlists.wishlistId}>
               <Link
-                to={`/my-wishlists/${wishlist.slug}`}
+                to={"#"}
+                // to={`/my-wishlists/${wishlist.slug}`}
                 className="group block py-4"
               >
                 <h2 className="text-xl font-semibold group-hover:text-blue-500">
-                  {wishlist.name}
+                  {wishlists.name}
                 </h2>
                 <div className="mt-2 flex gap-2.5">
-                  {wishlist.items.slice(0, 4).map((item) => (
+                  {wishlists.items.slice(0, 4).map((item) => (
                     <img
-                      key={item.id}
-                      src={item.imageUrl}
-                      alt={item.name}
+                      key={item.productId}
+                      src={item.product.images[0]}
+                      alt={item.product.name}
                       className="size-28 rounded-xl object-cover"
                     />
                   ))}
                 </div>
               </Link>
-              {index < wishlists.length - 1 && (
+              {index < shoppingWishlists.length - 1 && (
                 <div className="h-px w-full bg-black/10"></div>
               )}
             </div>

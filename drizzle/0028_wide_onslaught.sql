@@ -1,0 +1,1 @@
+ALTER TABLE "wishlist_items" RENAME COLUMN "added_at" TO "created_at";

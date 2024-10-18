@@ -312,9 +312,12 @@ export default function ShoppingCart({
                 <div className="flex font-semibold">
                   <div className="flex w-[30px] items-center">
                     <Checkbox
-                      selected={selectedItems.size === items.length}
+                      selected={
+                        items.length > 0 && selectedItems.size === items.length
+                      }
                       onChange={handleSelectAll}
                       parentInput={true}
+                      disabled={items.length === 0}
                     />
                   </div>
                   <p className="w-[350px] opacity-75">Product</p>

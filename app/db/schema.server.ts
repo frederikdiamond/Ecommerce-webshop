@@ -136,8 +136,21 @@ export const wishlistItems = pgTable("wishlist_items", {
   productId: integer("product_id")
     .notNull()
     .references(() => products.id),
-  addedAt: timestamp("added_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const wishlistItemConfigurations = pgTable(
+  "wishlist_item_configurations",
+  {
+    id: serial("id").primaryKey(),
+    wishlistItemId: integer("wishlist_item_id")
+      .notNull()
+      .references(() => wishlistItems.id),
+    optionId: integer("option_id")
+      .notNull()
+      .references(() => productOptions.id),
+  },
+);
 
 export const shoppingCartItems = pgTable("shopping_cart_items", {
   id: serial("id").primaryKey(),
@@ -159,10 +172,10 @@ export const shoppingCartItemConfigurations = pgTable(
     id: serial("id").primaryKey(),
     cartItemId: integer("cart_item_id")
       .notNull()
-      .references(() => shoppingCartItems.id), // Reference to shopping cart item
+      .references(() => shoppingCartItems.id),
     optionId: integer("option_id")
       .notNull()
-      .references(() => productOptions.id), // Reference to the selected option
+      .references(() => productOptions.id),
   },
 );
 
