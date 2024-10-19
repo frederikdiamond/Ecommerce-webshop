@@ -38,8 +38,8 @@ export const loader: LoaderFunction = async ({ request }) => {
         wishlistItemCreatedAt: wishlistItems.createdAt,
       })
       .from(wishlists)
-      .innerJoin(wishlistItems, eq(wishlistItems.wishlistId, wishlists.id))
-      .innerJoin(products, eq(products.id, wishlistItems.productId))
+      .leftJoin(wishlistItems, eq(wishlistItems.wishlistId, wishlists.id))
+      .leftJoin(products, eq(products.id, wishlistItems.productId))
       .where(eq(wishlists.userId, user.id));
 
     const wishlistsMap: { [key: number]: Wishlist } = {};
@@ -56,16 +56,18 @@ export const loader: LoaderFunction = async ({ request }) => {
         };
       }
 
-      wishlistsMap[row.wishlistId].items.push({
-        id: row.wishlistItemId,
-        productId: row.productId,
-        createdAt: new Date(row.wishlistItemCreatedAt),
-        product: {
-          name: row.productName,
-          price: parseFloat(row.productPrice),
-          images: row.productImages,
-        },
-      });
+      if (row.wishlistItemId) {
+        wishlistsMap[row.wishlistId].items.push({
+          id: row.wishlistItemId,
+          productId: row.productId,
+          createdAt: new Date(row.wishlistItemCreatedAt),
+          product: {
+            name: row.productName,
+            price: parseFloat(row.productPrice),
+            images: row.productImages,
+          },
+        });
+      }
     });
 
     const shoppingWishlists: Wishlist[] = Object.values(wishlistsMap);
