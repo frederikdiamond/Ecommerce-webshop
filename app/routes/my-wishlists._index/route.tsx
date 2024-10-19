@@ -236,8 +236,9 @@ export default function Wishlist() {
                     {wishlists.name}
                   </h2>
                   <p className="text-sm opacity-75">
-                    {wishlists.items.length}{" "}
-                    {wishlists.items.length > 1 ? "items" : "item"}
+                    {wishlists.items.length > 0
+                      ? `${wishlists.items.length} ${wishlists.items.length === 1 ? "item" : "items"}`
+                      : "No items"}
                   </p>
                   <div className="mt-2 flex gap-2.5">
                     {wishlists.items.slice(0, 4).map((item) => (

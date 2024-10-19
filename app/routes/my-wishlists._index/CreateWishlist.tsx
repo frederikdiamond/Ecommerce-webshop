@@ -1,6 +1,7 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { Form, useActionData, useNavigation } from "@remix-run/react";
+import { useEffect, useState } from "react";
 import { CustomButton } from "~/components/Buttons";
 import { FloatingLabelInput } from "~/components/TextInput";
 
@@ -16,6 +17,16 @@ export default function CreateWishlist({ close }: { close: () => void }) {
   const actionData = useActionData<ActionData>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
+  const [inputValue, setInputValue] = useState("");
+  const [isInputValid, setIsInputValid] = useState(false);
+
+  useEffect(() => {
+    setIsInputValid(inputValue.trim().length > 0 && !actionData?.errors);
+  }, [inputValue, actionData]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+  };
 
   return (
     <Form method="post" className="space-y-4">
@@ -33,6 +44,8 @@ export default function CreateWishlist({ close }: { close: () => void }) {
             label="Wishlist name"
             id="wishlistName"
             name="wishlistName"
+            value={inputValue}
+            onChange={handleInputChange}
             className={`mt-10 ${
               actionData?.errors?.wishlistName ? "border-red-500" : ""
             }`}
@@ -51,7 +64,11 @@ export default function CreateWishlist({ close }: { close: () => void }) {
         )}
 
         <div className="mt-7 flex gap-4">
-          <CustomButton type="submit" disabled={isSubmitting}>
+          <CustomButton
+            type="submit"
+            disabled={isSubmitting || !isInputValid}
+            className={`${!isInputValid ? "cursor-not-allowed opacity-50" : ""}`}
+          >
             {isSubmitting ? "Creating..." : "Create"}
           </CustomButton>
           <CustomButton onClick={close} variant="secondary">
