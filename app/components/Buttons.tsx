@@ -40,12 +40,14 @@ export const CustomLink = ({
 
 export const CustomButton = ({
   className,
+  onClick,
   variant = "primary",
   type = "button",
   disabled = false,
   children,
 }: {
   className?: string;
+  onClick?: () => void;
   variant?: "primary" | "secondary";
   type?: "button" | "submit" | "reset";
   disabled?: boolean;
@@ -66,7 +68,12 @@ export const CustomButton = ({
   );
 
   return (
-    <button type={type} disabled={disabled} className={mergedClassName}>
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={mergedClassName}
+    >
       {children}
     </button>
   );

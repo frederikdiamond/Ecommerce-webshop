@@ -16,7 +16,6 @@ export default function ProductCard({
   price: number;
   images: string;
 }) {
-  console.log(price);
   return (
     <Link
       key={id}

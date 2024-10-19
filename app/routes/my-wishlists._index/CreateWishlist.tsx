@@ -1,5 +1,6 @@
-import { Form, useActionData, useFetcher } from "@remix-run/react";
-import { useEffect, useRef, useTransition } from "react";
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
+import { Form, useActionData, useNavigation } from "@remix-run/react";
 import { CustomButton } from "~/components/Buttons";
 import { FloatingLabelInput } from "~/components/TextInput";
 
@@ -11,38 +12,13 @@ interface ActionData {
   success?: boolean;
 }
 
-export default function CreateWishlist({
-  confirmCreate,
-  close,
-}: {
-  confirmCreate: () => void;
-  close: () => void;
-}) {
-  const fetcher = useFetcher<ActionData | { success: boolean }>();
-  const actionData = fetcher.data;
-  const formRef = useRef<HTMLFormElement>(null);
-
-  useEffect(() => {
-    if (fetcher.type === "done") {
-      if ("success" in actionData && actionData.success) {
-        confirmCreate();
-      }
-    }
-  }, [fetcher.type, actionData, confirmCreate, close]);
-
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    fetcher.submit(form);
-  };
+export default function CreateWishlist({ close }: { close: () => void }) {
+  const actionData = useActionData<ActionData>();
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
 
   return (
-    <fetcher.Form
-      ref={formRef}
-      method="post"
-      onSubmit={handleSubmit}
-      className="space-y-4"
-    >
+    <Form method="post" className="space-y-4">
       <input type="hidden" name="intent" value="createWishlist" />
 
       <div
@@ -57,12 +33,9 @@ export default function CreateWishlist({
             label="Wishlist name"
             id="wishlistName"
             name="wishlistName"
-            className="mt-10"
-            // className={`mt-1 block w-full rounded-md border ${
-            //     actionData?.errors?.wishlistName ? "border-red-500" : "border-gray-300"
-            //   } shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm`}
-            //   aria-invalid={actionData?.errors?.wishlistName ? "true" : undefined}
-            //   aria-describedby={actionData?.errors?.wishlistName ? "wishlistName-error" : undefined}
+            className={`mt-10 ${
+              actionData?.errors?.wishlistName ? "border-red-500" : ""
+            }`}
             required
           />
 
@@ -78,14 +51,14 @@ export default function CreateWishlist({
         )}
 
         <div className="mt-7 flex gap-4">
-          <CustomButton type="submit" disabled={fetcher.state === "submitting"}>
-            {fetcher.state === "submitting" ? "Creating..." : "Create"}
+          <CustomButton type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Creating..." : "Create"}
           </CustomButton>
           <CustomButton onClick={close} variant="secondary">
             Cancel
           </CustomButton>
         </div>
       </div>
-    </fetcher.Form>
+    </Form>
   );
 }
