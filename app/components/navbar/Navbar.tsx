@@ -107,7 +107,7 @@ export default function Navbar({ user }: { user: User }) {
               <div ref={accountMenuRef}>
                 <button
                   onClick={toggleAccountMenu}
-                  className="flex items-center gap-3.5 rounded-xl p-2.5 opacity-50 transition-all duration-200 ease-in-out hover:bg-black/10 hover:opacity-100 active:bg-black/20"
+                  className="flex items-center gap-3.5 rounded-xl p-2.5 opacity-50 transition-all duration-200 ease-in-out hover:bg-black/5 hover:opacity-100 active:bg-black/10"
                 >
                   <div className="size-5">
                     <PersonIcon />

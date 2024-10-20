@@ -9,7 +9,7 @@ import { products, wishlistItems, wishlists } from "~/db/schema.server";
 import { authenticator } from "~/services/auth.server";
 import { useEffect, useRef, useState } from "react";
 import { CustomButton } from "~/components/Buttons";
-import { Product } from "~/types/ProductTypes";
+import type { Wishlist } from "~/types/WishlistTypes";
 import CreateWishlist from "./CreateWishlist";
 
 interface LoaderData {
@@ -50,6 +50,7 @@ export const loader: LoaderFunction = async ({ request }) => {
           id: row.wishlistId,
           userId: row.userId,
           name: row.wishlistName,
+          slug: row.wishlistName.toLowerCase().replace(/\s+/g, "-"),
           createdAt: new Date(row.wishlistCreatedAt),
           updatedAt: new Date(row.wishlistUpdatedAt),
           items: [],
@@ -139,23 +140,7 @@ export const action: ActionFunction = async ({ request }) => {
   );
 };
 
-interface Wishlist {
-  wishlistId: number;
-  userId: number;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-  items: WishlistItem[];
-}
-
-interface WishlistItem {
-  id: number;
-  productId: number;
-  createdAt: Date;
-  product: Product;
-}
-
-export default function Wishlist() {
+export default function WishlistsOverview() {
   const { shoppingWishlists, error } = useLoaderData<LoaderData>();
   const actionData = useActionData();
   const [showCreateWishlist, setShowCreateWishlist] = useState(false);
@@ -228,8 +213,7 @@ export default function Wishlist() {
             {shoppingWishlists.map((wishlists, index) => (
               <div key={wishlists.wishlistId}>
                 <Link
-                  to={"#"}
-                  // to={`/my-wishlists/${wishlist.slug}`}
+                  to={`/my-wishlists/${wishlists.slug}`}
                   className="group block py-4"
                 >
                   <h2 className="text-xl font-semibold group-hover:text-blue-500">
