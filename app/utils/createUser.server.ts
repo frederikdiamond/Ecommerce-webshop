@@ -24,6 +24,13 @@ export const createUser = async (user: RegisterForm) => {
     return json({ error: "User already exists" }, { status: 400 });
   }
 
+  const capitalizeFirstLetter = (
+    str: string | null | undefined,
+  ): string | null => {
+    if (!str) return null;
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
+
   const hashedPassword = await argon2.hash(user.password);
 
   const [newUser] = await db
@@ -32,8 +39,8 @@ export const createUser = async (user: RegisterForm) => {
       username: user.username,
       email: user.email,
       passwordHash: hashedPassword,
-      firstName: user.firstName || null,
-      lastName: user.lastName || null,
+      firstName: capitalizeFirstLetter(user.firstName),
+      lastName: capitalizeFirstLetter(user.lastName),
       dateOfBirth: user.dateOfBirth || null,
       createdAt: new Date(),
       updatedAt: new Date(),

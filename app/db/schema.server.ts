@@ -64,7 +64,9 @@ export const products = pgTable("products", {
   price: integer("price").notNull(), // Stored in cents
   basePrice: integer("base_price").notNull(), // No configurations. Stored in cents.
   stock: integer("stock").notNull().default(0),
-  category: varchar("category", { length: 100 }),
+  categoryId: integer("category_id")
+    .notNull()
+    .references(() => productCategories.id),
   sku: varchar("sku", { length: 50 }).unique(),
   images: jsonb("images").notNull().default([]),
   isCustomizable: boolean("is_customizable").notNull().default(false),
@@ -117,6 +119,13 @@ export const productOptions = pgTable(
     };
   },
 );
+
+export const productCategories = pgTable("product_categories", {
+  id: serial("id").primaryKey(),
+  category: varchar("category", { length: 255 }).notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
 export const wishlists = pgTable("wishlists", {
   id: serial("id").primaryKey(),
@@ -224,7 +233,11 @@ export const wishlistItemsRelations = relations(wishlistItems, ({ one }) => ({
   }),
 }));
 
-export const productsRelations = relations(products, ({ many }) => ({
+export const productsRelations = relations(products, ({ one, many }) => ({
+  category: one(productCategories, {
+    fields: [products.categoryId],
+    references: [productCategories.id],
+  }),
   orderItems: many(orderItems),
   wishlistItems: many(wishlistItems),
 }));
@@ -239,3 +252,10 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
     references: [products.id],
   }),
 }));
+
+export const productCategoriesRelations = relations(
+  productCategories,
+  ({ many }) => ({
+    products: many(products),
+  }),
+);
