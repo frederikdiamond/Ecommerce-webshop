@@ -1,19 +1,61 @@
+import type { ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { Link, useLoaderData } from "@remix-run/react";
+import { Link, useFetcher, useLoaderData } from "@remix-run/react";
 import type { LoaderFunction } from "@remix-run/node";
 import { ArrowIcon } from "~/components/Icons";
 import { authenticator } from "~/services/auth.server";
 import { db } from "~/db/index.server";
 import { products, wishlistItems, wishlists } from "~/db/schema.server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { formatPrice } from "~/helpers/formatPrice";
 import { Wishlist } from "~/types/WishlistTypes";
-import MenuDots from "~/components/MenuDots";
+import { MenuDots } from "~/components/MenuDots";
 
 interface LoaderData {
   wishlist: Wishlist | null;
   error?: string;
 }
+
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const user = await authenticator.isAuthenticated(request);
+  const formData = await request.formData();
+  const action = formData.get("action");
+  const wishlistId = formData.get("wishlistId");
+
+  if (!user) {
+    return json({ error: "User not authenticated" }, { status: 401 });
+  }
+
+  if (action !== "deleteWishlist" || !wishlistId) {
+    return json({ error: "Invalid request" }, { status: 400 });
+  }
+
+  try {
+    const [wishlist] = await db
+      .select()
+      .from(wishlists)
+      .where(
+        and(
+          eq(wishlists.id, Number(wishlistId)),
+          eq(wishlists.userId, user.id),
+        ),
+      );
+
+    if (!wishlist) {
+      return json({ error: "Wishlist not found" }, { status: 404 });
+    }
+
+    await db
+      .delete(wishlistItems)
+      .where(eq(wishlistItems.wishlistId, Number(wishlistId)));
+
+    await db.delete(wishlists).where(eq(wishlists.id, Number(wishlistId)));
+
+    return json({ success: true });
+  } catch (error) {
+    return json({ error }, { status: 500 });
+  }
+};
 
 export const loader: LoaderFunction = async ({ params, request }) => {
   const { slug } = params;
@@ -98,6 +140,34 @@ export const loader: LoaderFunction = async ({ params, request }) => {
 
 export default function WishlistDetails() {
   const { wishlist, error } = useLoaderData<LoaderData>();
+  const fetcher = useFetcher();
+
+  const handleRemoveWishlist = () => {
+    if (window.confirm("Are you sure you want to delete this wishlist?")) {
+      fetcher.submit(
+        {
+          action: "deleteWishlist",
+          wishlistId: wishlist?.id.toString(),
+        },
+        { method: "post" },
+      );
+    }
+  };
+
+  const dropdownItems = [
+    {
+      label: "Share",
+      onClick: () => {},
+    },
+    {
+      label: "Rename",
+      onClick: () => {},
+    },
+    {
+      label: "Remove",
+      onclick: () => handleRemoveWishlist(),
+    },
+  ];
 
   if (error) {
     return <div className="text-red-500">Error: {error}</div>;
@@ -120,7 +190,7 @@ export default function WishlistDetails() {
           <h1 className="text-3xl font-bold">{wishlist.name}</h1>
         </div>
 
-        <MenuDots />
+        <MenuDots items={dropdownItems} />
       </div>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {wishlist.items.map((item) => (

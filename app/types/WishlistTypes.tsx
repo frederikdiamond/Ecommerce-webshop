@@ -5,8 +5,8 @@ export interface Wishlist {
   userId: number;
   name: string;
   slug: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
   items: WishlistItem[];
 }
 

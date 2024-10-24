@@ -30,8 +30,8 @@ export const loader: LoaderFunction = async ({ request }) => {
         wishlistId: wishlists.id,
         userId: wishlists.userId,
         wishlistName: wishlists.name,
-        wishlistcreatedAt: wishlists.createdAt,
-        wishlistupdatedAt: wishlists.updatedAt,
+        wishlistCreatedAt: wishlists.createdAt,
+        wishlistUpdatedAt: wishlists.updatedAt,
         wishlistItemId: wishlistItems.id,
         productId: wishlistItems.productId,
         productImages: products.images,
@@ -177,9 +177,9 @@ export default function WishlistsOverview() {
     return <div className="text-red-500">Error: {error}</div>;
   }
 
-  if (!shoppingWishlists || shoppingWishlists.length === 0) {
-    return <div>No wishlists found.</div>;
-  }
+  // if (!shoppingWishlists || shoppingWishlists.length === 0) {
+  //   return <div>No wishlists found.</div>;
+  // }
 
   const handleOpenCreateWishlist = () => {
     setShowCreateWishlist(true);
@@ -195,12 +195,12 @@ export default function WishlistsOverview() {
 
   return (
     <>
-      <div className="mt-32 flex flex-col items-center">
+      <div className="mt-28 flex flex-col items-center">
         <div>
           <div className="flex w-[950px] items-center justify-between">
             <div className="flex items-start gap-3">
               <h1 className="text-4xl font-bold tracking-wide">MY WISHLISTS</h1>
-              <p className="text-lg font-bold">[{shoppingWishlists.length}]</p>
+              <p className="text-lg font-bold">[{shoppingWishlists?.length}]</p>
             </div>
             <Form method="post">
               <CustomButton onClick={handleOpenCreateWishlist}>
@@ -210,7 +210,7 @@ export default function WishlistsOverview() {
           </div>
 
           <div className="mt-5 flex flex-col">
-            {shoppingWishlists.map((wishlists, index) => (
+            {shoppingWishlists?.map((wishlists, index) => (
               <div key={wishlists.wishlistId}>
                 <Link
                   to={`/my-wishlists/${wishlists.slug}`}
@@ -240,6 +240,13 @@ export default function WishlistsOverview() {
                 )}
               </div>
             ))}
+            {shoppingWishlists?.length === 0 && (
+              <div className="mt-5 text-center text-lg text-gray-500">
+                You don&apos;t have any wishlists yet.
+                <br />
+                Create one to get started!
+              </div>
+            )}
           </div>
         </div>
       </div>

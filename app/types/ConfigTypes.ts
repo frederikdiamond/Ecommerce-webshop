@@ -1,4 +1,5 @@
 export type ConfigOption = {
+  id: number;
   label: string;
   price: number;
 };
@@ -6,5 +7,5 @@ export type ConfigOption = {
 export type ConfigCategory = {
   name: string;
   options: ConfigOption[];
-  defaultOption?: ConfigOption;
+  defaultOption?: ConfigOption | null;
 };

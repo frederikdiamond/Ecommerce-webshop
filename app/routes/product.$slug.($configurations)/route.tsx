@@ -233,7 +233,7 @@ export default function ProductPage() {
         }
         return acc;
       },
-      {},
+      {} as Record<string, number>,
     );
 
     fetcher.submit(
