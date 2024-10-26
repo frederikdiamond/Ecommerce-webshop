@@ -4,12 +4,19 @@ import { Link, useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
 import { ArrowIcon } from "~/components/Icons";
 import { authenticator } from "~/services/auth.server";
 import { db } from "~/db/index.server";
-import { products, wishlistItems, wishlists } from "~/db/schema.server";
-import { and, eq } from "drizzle-orm";
+import {
+  productConfigurations,
+  productOptions,
+  products,
+  wishlistItems,
+  wishlists,
+} from "~/db/schema.server";
+import { and, eq, inArray } from "drizzle-orm";
 import { formatPrice } from "~/helpers/formatPrice";
 import { Wishlist } from "~/types/WishlistTypes";
 import { MenuDots } from "~/components/MenuDots";
 import { useEffect, useState } from "react";
+import { ConfigCategory, ConfigOption } from "~/types/ConfigTypes";
 
 interface LoaderData {
   wishlist: Wishlist | null;
@@ -52,7 +59,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return json({
           success: true,
           message: "Wishlist deleted successfully",
+          navi,
         });
+
       case "renameWishlist": {
         const newName = formData.get("name");
 
@@ -121,15 +130,18 @@ export const loader: LoaderFunction = async ({ params, request }) => {
   }
 
   try {
-    const userWishlists = await db
+    const wishlistDetails = await db
       .select({
-        id: wishlists.id,
+        wishlistId: wishlists.id,
+        userId: wishlists.userId,
         name: wishlists.name,
+        createdAt: wishlists.createdAt,
+        updatedAt: wishlists.updatedAt,
       })
       .from(wishlists)
       .where(eq(wishlists.userId, user.id));
 
-    const matchingWishlist = userWishlists.find(
+    const matchingWishlist = wishlistDetails.find(
       (w) => w.name.toLowerCase().replace(/\s+/g, "-") === slug,
     );
 
@@ -143,32 +155,100 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     const wishlistItemsResult = await db
       .select({
         wishlistItemId: wishlistItems.id,
-        productId: wishlistItems.productId,
+        productId: products.id,
         productName: products.name,
         productSlug: products.slug,
         productPrice: products.price,
+        productBasePrice: products.basePrice,
         productImages: products.images,
         productDescription: products.description,
+        productSpecifications: products.specifications,
+        productQuantity: products.stock,
+        productTotalSold: products.totalSold,
         wishlistItemCreatedAt: wishlistItems.createdAt,
       })
       .from(wishlistItems)
       .innerJoin(products, eq(products.id, wishlistItems.productId))
-      .where(eq(wishlistItems.wishlistId, matchingWishlist.id));
+      .where(eq(wishlistItems.wishlistId, matchingWishlist.wishlistId));
+
+    const productIds = wishlistItemsResult.map((item) => item.productId);
+    const configurations = await db
+      .select({
+        productId: productConfigurations.productId,
+        category: productConfigurations.category,
+        optionId: productOptions.id,
+        optionLabel: productOptions.optionLabel,
+        priceModifier: productOptions.priceModifier,
+        isDefault: productOptions.isDefault,
+      })
+      .from(productConfigurations)
+      .leftJoin(
+        productOptions,
+        eq(productOptions.configurationId, productConfigurations.id),
+      )
+      .where(inArray(productConfigurations.productId, productIds));
+
+    const configsByProduct = configurations.reduce(
+      (acc, conf) => {
+        if (
+          !conf.optionId ||
+          !conf.optionLabel ||
+          conf.priceModifier === null
+        ) {
+          return acc;
+        }
+
+        if (!acc[conf.productId]) {
+          acc[conf.productId] = {};
+        }
+        if (!acc[conf.productId][conf.category]) {
+          acc[conf.productId][conf.category] = {
+            name: conf.category,
+            options: [],
+            defaultOption: null,
+          };
+        }
+
+        const option: ConfigOption = {
+          id: conf.optionId,
+          label: conf.optionLabel,
+          price: conf.priceModifier,
+        };
+
+        acc[conf.productId][conf.category].options.push(option);
+        if (conf.isDefault) {
+          acc[conf.productId][conf.category].defaultOption = option;
+        }
+
+        return acc;
+      },
+      {} as Record<number, Record<string, ConfigCategory>>,
+    );
 
     const formattedWishlist: Wishlist = {
-      id: matchingWishlist.id,
+      wishlistId: matchingWishlist.wishlistId,
+      userId: matchingWishlist.userId,
       name: matchingWishlist.name,
       slug: slug,
+      createdAt: matchingWishlist.createdAt,
+      updatedAt: matchingWishlist.updatedAt,
+
       items: wishlistItemsResult.map((row) => ({
         id: row.wishlistItemId,
         productId: row.productId,
         createdAt: new Date(row.wishlistItemCreatedAt),
         product: {
+          id: row.productId,
           name: row.productName,
           slug: row.productSlug,
+          description: row.productDescription || "",
+          specifications: row.productSpecifications as string[],
           price: row.productPrice,
-          images: row.productImages,
-          description: row.productDescription,
+          basePrice: row.productBasePrice,
+          images: row.productImages as string[],
+          quantity: row.productQuantity,
+          totalSold: row.productTotalSold,
+          configurations: Object.values(configsByProduct[row.productId] || {}),
         },
       })),
     };
@@ -214,7 +294,7 @@ export default function WishlistDetails() {
 
   const handleRenameWishlist = () => {
     setIsRenaming(true);
-    setNewName(wishlist?.name);
+    setNewName(wishlist?.name || "");
     setErrorMessage(null);
   };
 
@@ -224,7 +304,7 @@ export default function WishlistDetails() {
       fetcher.submit(
         {
           action: "renameWishlist",
-          wishlistId: wishlist.id.toString(),
+          wishlistId: wishlist.wishlistId.toString(),
           name: trimmedName,
         },
         { method: "post" },
@@ -234,11 +314,14 @@ export default function WishlistDetails() {
   };
 
   const handleRemoveWishlist = () => {
-    if (window.confirm("Are you sure you want to delete this wishlist?")) {
+    if (
+      window.confirm("Are you sure you want to delete this wishlist?") &&
+      wishlist
+    ) {
       fetcher.submit(
         {
           action: "deleteWishlist",
-          wishlistId: wishlist?.id.toString(),
+          wishlistId: wishlist.wishlistId.toString(),
         },
         { method: "post" },
       );

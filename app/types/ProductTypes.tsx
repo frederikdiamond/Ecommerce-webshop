@@ -1,3 +1,5 @@
+import { ConfigCategory } from "./ConfigTypes";
+
 export interface Product {
   id: number;
   slug?: string;
