@@ -1,7 +1,6 @@
-import type { ActionFunctionArgs } from "@remix-run/node";
+import type { ActionFunctionArgs, LoaderFunction } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { Link, useFetcher, useLoaderData } from "@remix-run/react";
-import type { LoaderFunction } from "@remix-run/node";
+import { Link, useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
 import { ArrowIcon } from "~/components/Icons";
 import { authenticator } from "~/services/auth.server";
 import { db } from "~/db/index.server";
@@ -10,6 +9,7 @@ import { and, eq } from "drizzle-orm";
 import { formatPrice } from "~/helpers/formatPrice";
 import { Wishlist } from "~/types/WishlistTypes";
 import { MenuDots } from "~/components/MenuDots";
+import { useEffect, useState } from "react";
 
 interface LoaderData {
   wishlist: Wishlist | null;
@@ -26,32 +26,77 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ error: "User not authenticated" }, { status: 401 });
   }
 
-  if (action !== "deleteWishlist" || !wishlistId) {
-    return json({ error: "Invalid request" }, { status: 400 });
+  if (!wishlistId) {
+    return json({ error: "Invalid wishlist ID" }, { status: 400 });
+  }
+
+  const [wishlist] = await db
+    .select()
+    .from(wishlists)
+    .where(
+      and(eq(wishlists.id, Number(wishlistId)), eq(wishlists.userId, user.id)),
+    );
+
+  if (!wishlist) {
+    return json({ error: "Wishlist not found" }, { status: 404 });
   }
 
   try {
-    const [wishlist] = await db
-      .select()
-      .from(wishlists)
-      .where(
-        and(
-          eq(wishlists.id, Number(wishlistId)),
-          eq(wishlists.userId, user.id),
-        ),
-      );
+    switch (action) {
+      case "deleteWishlist":
+        await db
+          .delete(wishlistItems)
+          .where(eq(wishlistItems.wishlistId, Number(wishlistId)));
 
-    if (!wishlist) {
-      return json({ error: "Wishlist not found" }, { status: 404 });
+        await db.delete(wishlists).where(eq(wishlists.id, Number(wishlistId)));
+        return json({
+          success: true,
+          message: "Wishlist deleted successfully",
+        });
+      case "renameWishlist": {
+        const newName = formData.get("name");
+
+        if (!newName || typeof newName !== "string") {
+          return json({ error: "New name is required" }, { status: 400 });
+        }
+
+        const trimmedNewName = newName.trim();
+
+        if (trimmedNewName.length === 0) {
+          return json({ error: "Name cannot be empty" }, { status: 400 });
+        }
+
+        if (trimmedNewName === wishlist.name) {
+          return json({
+            success: true,
+            message: "No changes needed - name is the same",
+            noUpdate: true,
+          });
+        }
+
+        const newSlug = trimmedNewName.toLowerCase().replace(/\s+/g, "-");
+
+        await db
+          .update(wishlists)
+          .set({ name: newName })
+          .where(eq(wishlists.id, Number(wishlistId)));
+
+        return json({
+          success: true,
+          message: "Wishlist renamed successfully",
+          newName: trimmedNewName,
+          newSlug,
+        });
+      }
+
+      case "shareWishlist": {
+        // Will implement sharing logic later
+        return json({ error: "Sharing not implemented yet" }, { status: 501 });
+      }
+
+      default:
+        return json({ error: "Invalid action" }, { status: 400 });
     }
-
-    await db
-      .delete(wishlistItems)
-      .where(eq(wishlistItems.wishlistId, Number(wishlistId)));
-
-    await db.delete(wishlists).where(eq(wishlists.id, Number(wishlistId)));
-
-    return json({ success: true });
   } catch (error) {
     return json({ error }, { status: 500 });
   }
@@ -141,6 +186,52 @@ export const loader: LoaderFunction = async ({ params, request }) => {
 export default function WishlistDetails() {
   const { wishlist, error } = useLoaderData<LoaderData>();
   const fetcher = useFetcher();
+  const navigate = useNavigate();
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [newName, setNewName] = useState("second");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data) {
+      if (fetcher.data.error) {
+        setErrorMessage(fetcher.data.error);
+      } else if (fetcher.data.success) {
+        setErrorMessage(null);
+
+        if (fetcher.data.noUpdate) {
+          setIsRenaming(false);
+        } else {
+          if (fetcher.data.newSlug) {
+            navigate(`/my-wishlists/${fetcher.data.newSlug}`, {
+              replace: true,
+            });
+          }
+          setIsRenaming(false);
+        }
+      }
+    }
+  }, [fetcher.state, fetcher.data, navigate]);
+
+  const handleRenameWishlist = () => {
+    setIsRenaming(true);
+    setNewName(wishlist?.name);
+    setErrorMessage(null);
+  };
+
+  const submitRename = () => {
+    const trimmedName = newName.trim();
+    if (trimmedName && wishlist) {
+      fetcher.submit(
+        {
+          action: "renameWishlist",
+          wishlistId: wishlist.id.toString(),
+          name: trimmedName,
+        },
+        { method: "post" },
+      );
+      setIsRenaming(false);
+    }
+  };
 
   const handleRemoveWishlist = () => {
     if (window.confirm("Are you sure you want to delete this wishlist?")) {
@@ -161,11 +252,11 @@ export default function WishlistDetails() {
     },
     {
       label: "Rename",
-      onClick: () => {},
+      onClick: handleRenameWishlist,
     },
     {
       label: "Remove",
-      onclick: () => handleRemoveWishlist(),
+      onClick: handleRemoveWishlist,
     },
   ];
 
@@ -187,7 +278,44 @@ export default function WishlistDetails() {
           >
             <ArrowIcon className="size-7 rotate-180 stroke-black stroke-[0.5px] opacity-50 transition duration-200 ease-in-out group-hover:opacity-100" />
           </Link>
-          <h1 className="text-3xl font-bold">{wishlist.name}</h1>
+          {isRenaming ? (
+            <div className="flex items-center gap-5">
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className={`rounded-md border-2 border-gray-300 px-3 py-1 outline-none transition duration-200 ease-in-out hover:border-blue-400 focus:border-blue-600 ${errorMessage ? "border-red-500" : "border-gray-300"}`}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submitRename();
+                  if (e.key === "Escape") setIsRenaming(false);
+                }}
+                disabled={fetcher.state === "submitting"}
+                // eslint-disable-next-line jsx-a11y/no-autofocus
+                autoFocus
+              />
+
+              <div className="flex gap-2.5">
+                <button
+                  onClick={submitRename}
+                  disabled={!newName.trim() || fetcher.state === "submitting"}
+                  className="rounded-md bg-blue-500 px-3 py-1 font-medium text-white transition duration-200 ease-in-out hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {fetcher.state === "submitting" ? "Saving..." : "Save"}
+                </button>
+                <button
+                  onClick={() => {
+                    setIsRenaming(false);
+                    setErrorMessage(null);
+                  }}
+                  className="rounded-md bg-gray-200 px-3 py-1 font-medium transition duration-200 ease-in-out hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <h1 className="text-3xl font-bold">{wishlist.name}</h1>
+          )}
         </div>
 
         <MenuDots items={dropdownItems} />
